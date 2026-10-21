@@ -257,8 +257,16 @@ document.getElementById("capture-save").addEventListener("click", async () => {
 
 // --- Start ---------------------------------------------------------------
 
-renderBoundary(true);
-renderVehicles();
+// Fehler der Datenbank sichtbar machen statt still zu scheitern
+function showDbError(err) {
+  modeEl.textContent = "Fehler";
+  modeEl.classList.remove("shared");
+  modeEl.title = "Datenbank nicht erreichbar: " + (err?.message || err);
+  console.error(err);
+}
+
+Promise.all([renderBoundary(true), renderVehicles()]).catch(showDbError);
+
 // Aufruf über einen gescannten QR-Link (…/?v=FZ-0001)
 const startCode = new URLSearchParams(location.search).get("v");
 if (startCode) {
@@ -267,6 +275,5 @@ if (startCode) {
 }
 
 store.onChange(() => {
-  renderBoundary(false);
-  renderVehicles();
+  Promise.all([renderBoundary(false), renderVehicles()]).catch(showDbError);
 });
