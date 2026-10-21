@@ -1,5 +1,6 @@
 -- Gemeinsame Datenbank für den Prototyp.
 -- Im Supabase-Dashboard unter "SQL Editor" einfügen und ausführen.
+-- Kann gefahrlos mehrfach ausgeführt werden.
 
 -- Geländegrenze (genau eine Zeile)
 create table if not exists site (
@@ -40,9 +41,23 @@ order by vehicle_id, created_at desc;
 alter table site enable row level security;
 alter table vehicles enable row level security;
 alter table positions enable row level security;
+drop policy if exists "prototype all" on site;
+drop policy if exists "prototype all" on vehicles;
+drop policy if exists "prototype all" on positions;
 create policy "prototype all" on site for all using (true) with check (true);
 create policy "prototype all" on vehicles for all using (true) with check (true);
 create policy "prototype all" on positions for all using (true) with check (true);
 
--- Live-Aktualisierung für alle offenen Geräte
-alter publication supabase_realtime add table site, vehicles, positions;
+-- Live-Aktualisierung für alle offenen Geräte (mehrfach ausführbar)
+do $$
+declare t text;
+begin
+  foreach t in array array['site', 'vehicles', 'positions'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
