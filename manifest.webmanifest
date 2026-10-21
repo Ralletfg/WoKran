@@ -1,0 +1,9 @@
+{
+  "name": "Fahrzeug-Standorte",
+  "short_name": "Fahrzeuge",
+  "lang": "de",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f6feb"
+}

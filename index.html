@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Fahrzeug-Standorte</title>
+  <meta name="theme-color" content="#1f6feb">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>Fahrzeuge</h1>
+    <span class="bar-right">
+      <span id="mode" class="badge"></span>
+      <a href="labels.html" class="badge">QR-Etiketten</a>
+    </span>
+  </header>
+
+  <div class="search">
+    <input id="search" type="search" placeholder="Fahrzeug suchen (Name, Kennzeichen, Code)" autocomplete="off">
+    <ul id="search-results" hidden></ul>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="scanner" class="overlay" hidden>
+    <video id="scan-video" playsinline muted></video>
+    <div class="scan-frame"></div>
+    <p class="scan-text">QR-Code am Fahrzeug in den Rahmen halten</p>
+    <button id="scan-close" type="button">Abbrechen</button>
+  </div>
+
+  <div id="capture" class="hint" hidden>
+    <strong id="capture-title"></strong>
+    <div id="capture-status" class="muted"></div>
+    <label id="capture-name-row">Dein Name <input id="capture-name" autocomplete="name"></label>
+    <div class="hint-actions">
+      <button id="capture-gps" type="button">GPS neu holen</button>
+      <button id="capture-cancel" type="button">Abbrechen</button>
+      <button id="capture-save" type="button" class="primary">Standort speichern</button>
+    </div>
+  </div>
+
+  <div id="edit-hint" class="hint" hidden>
+    Tippe nacheinander auf die Eckpunkte des Firmengeländes.
+    <div class="hint-actions">
+      <button id="edit-undo" type="button">Letzten Punkt löschen</button>
+      <button id="edit-cancel" type="button">Abbrechen</button>
+      <button id="edit-save" type="button" class="primary">Speichern</button>
+    </div>
+  </div>
+
+  <nav class="actions">
+    <button id="btn-scan" type="button" class="primary">Scannen</button>
+    <button id="btn-locate" type="button">Standort</button>
+    <button id="btn-edit" type="button">Grenze</button>
+  </nav>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="config.js"></script>
+  <script src="store.js"></script>
+  <script src="scan.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

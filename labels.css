@@ -1,0 +1,62 @@
+body.page { display: block; height: auto; }
+.content { max-width: 640px; margin: 0 auto; padding: 16px; }
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.card h2 { margin: 0; font-size: 17px; }
+.muted { color: var(--muted); font-size: 14px; margin: 0; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+input, textarea {
+  font: inherit;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+}
+a.badge { text-decoration: none; }
+
+/* Etiketten: auf dem Bildschirm als Vorschau, beim Drucken A4 */
+.sheet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+}
+.label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: #000;
+  text-align: center;
+  break-inside: avoid;
+}
+.label svg { width: 100%; max-width: 160px; height: auto; }
+.label .name { font-weight: 700; font-size: 15px; margin-top: 4px; }
+.label .plate, .label .code { font-size: 12px; }
+
+@media print {
+  @page { size: A4; margin: 10mm; }
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .sheet {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6mm;
+    max-width: none;
+    padding: 0;
+  }
+  .label { border: 1px dashed #999; border-radius: 0; padding: 4mm; }
+  .label svg { max-width: 45mm; }
+}
