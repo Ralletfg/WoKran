@@ -1,0 +1,21 @@
+name: Geodaten holen
+on:
+  push:
+    branches: [geodaten]
+    paths: [tools/geodaten.py, .github/workflows/geodaten.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  holen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pillow
+      - run: mkdir -p geodata && python tools/geodaten.py
+      - run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add geodata
+          git commit -m "Geodaten aktualisiert" || exit 0
+          git push
