@@ -154,6 +154,13 @@ input {
 .leaflet-tooltip.vlabel::before { display: none; }
 
 .plan-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
   border: 3px solid #fff;
   border-radius: 50%;
   background: #e5322d;
@@ -172,3 +179,7 @@ input {
   font-weight: 600;
 }
 .mix-control input { width: 110px; padding: 0; border: 0; background: transparent; }
+.hint.bottom { top: auto; bottom: calc(env(safe-area-inset-bottom) + 76px); }
+.hint.bottom { padding: 10px 12px; }
+.hint-actions.compact { margin-top: 6px; }
+.hint-actions.compact button { min-height: 36px; padding: 4px; font-size: 18px; }

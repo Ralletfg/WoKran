@@ -52,8 +52,14 @@
     </div>
   </div>
 
-  <div id="plan-hint" class="hint" hidden>
-    Lageplan ausrichten: Die drei Punkte an den Ecken ziehen, bis Hallen und Straßen über dem Satellitenbild liegen. Der mittlere Punkt verschiebt den ganzen Plan.
+  <div id="plan-hint" class="hint bottom" hidden>
+    <span class="muted">Blau: verschieben · Rot: drehen und Größe · Feinschritte:</span>
+    <div class="hint-actions compact">
+      <button id="plan-rot-left" type="button" aria-label="Nach links drehen">&#10226;</button>
+      <button id="plan-rot-right" type="button" aria-label="Nach rechts drehen">&#10227;</button>
+      <button id="plan-smaller" type="button" aria-label="Kleiner">&minus;</button>
+      <button id="plan-bigger" type="button" aria-label="Größer">+</button>
+    </div>
     <div class="hint-actions">
       <button id="plan-cancel" type="button">Abbrechen</button>
       <button id="plan-save" type="button" class="primary">Speichern</button>

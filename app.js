@@ -31,11 +31,9 @@ let planLayer = null;
 // Ohne gespeicherte Lage: Plan über die Geländegrenze legen (Norden oben)
 function defaultPlan() {
   const b = boundaryLayer.getLatLngs()[0]?.length > 2 ? boundaryLayer.getBounds() : map.getBounds().pad(-0.2);
-  return {
-    tl: [b.getNorth(), b.getWest()],
-    tr: [b.getNorth(), b.getEast()],
-    bl: [b.getSouth(), b.getWest()],
-  };
+  const nw = map.project(b.getNorthWest(), PZ);
+  const se = map.project(b.getSouthEast(), PZ);
+  return cornersOf({ c: nw.add(se).divideBy(2), w: se.x - nw.x, angle: 0 });
 }
 
 // Mischung Satellit/Lageplan: 0 = nur Satellit, 1 = nur Plan; pro Gerät gemerkt
@@ -188,60 +186,107 @@ document.getElementById("edit-save").addEventListener("click", async () => {
 
 // --- Lageplan ausrichten -------------------------------------------------
 
+// Der Plan wird als starres Bild behandelt: Mitte, Breite und Drehwinkel,
+// gerechnet in Kartenpixeln auf fester Zoomstufe. So bleibt das Seitenverhältnis erhalten.
+const PLAN_ASPECT = 953 / 1234; // Höhe / Breite von lageplan.png
+const PZ = 20;
 const planHint = document.getElementById("plan-hint");
-let alignDraft = null; // { tl, tr, bl } während des Ausrichtens
+let alignDraft = null; // { c: L.Point, w, angle } während des Ausrichtens
 let alignHandles = [];
 
-const handleIcon = L.divIcon({ className: "plan-handle", iconSize: [26, 26] });
+const toPt = (ll) => map.project(L.latLng(ll), PZ);
+const toLL = (pt) => {
+  const ll = map.unproject(pt, PZ);
+  return [ll.lat, ll.lng];
+};
+
+function cornersOf({ c, w, angle }) {
+  const h = w * PLAN_ASPECT;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const at = (x, y) => toLL(L.point(c.x + x * cos - y * sin, c.y + x * sin + y * cos));
+  return { tl: at(-w / 2, -h / 2), tr: at(w / 2, -h / 2), bl: at(-w / 2, h / 2) };
+}
+
+function rigidOf(p) {
+  const tl = toPt(p.tl);
+  const tr = toPt(p.tr);
+  const bl = toPt(p.bl);
+  const top = tr.subtract(tl);
+  const w = Math.hypot(top.x, top.y);
+  const angle = Math.atan2(top.y, top.x);
+  // Mitte aus oberer Kante und Winkel, damit ein evtl. verzerrter alter Plan wieder gerade wird
+  const h = w * PLAN_ASPECT;
+  const mid = tl.add(tr).divideBy(2);
+  const c = L.point(mid.x - (h / 2) * Math.sin(angle), mid.y + (h / 2) * Math.cos(angle));
+  return { c, w, angle };
+}
+
+const handleIcon = L.divIcon({ className: "plan-handle", html: "&#10227;", iconSize: [34, 34] });
 
 function startAlign() {
   if (draft) setEditing(false);
-  alignDraft = JSON.parse(JSON.stringify(plan || defaultPlan()));
+  alignDraft = rigidOf(plan || defaultPlan());
   if (!map.hasLayer(planLayer)) planLayer.addTo(map);
-  showPlan(alignDraft, 0.6);
   planHint.hidden = false;
 
-  const centerOf = (d) => [(d.tr[0] + d.bl[0]) / 2, (d.tr[1] + d.bl[1]) / 2];
-  const corners = ["tl", "tr", "bl"].map((k) => {
-    const m = L.marker(alignDraft[k], { draggable: true, icon: handleIcon }).addTo(map);
-    m.on("drag", () => {
-      const { lat, lng } = m.getLatLng();
-      alignDraft[k] = [lat, lng];
-      mover.setLatLng(centerOf(alignDraft));
-      showPlan(alignDraft, 0.6);
-    });
-    return m;
-  });
-  const mover = L.marker(centerOf(alignDraft), { draggable: true, icon: L.divIcon({ className: "plan-handle move", iconSize: [34, 34] }) }).addTo(map);
-  let last = null;
-  mover.on("dragstart", () => (last = mover.getLatLng()));
+  const mover = L.marker(toLL(alignDraft.c), { draggable: true, icon: L.divIcon({ className: "plan-handle move", html: "&#10021;", iconSize: [34, 34] }) }).addTo(map);
+  const turner = L.marker([0, 0], { draggable: true, icon: handleIcon }).addTo(map);
+
+  const update = () => {
+    const corners = cornersOf(alignDraft);
+    showPlan(corners, 0.6);
+    mover.setLatLng(toLL(alignDraft.c));
+    turner.setLatLng(corners.tr);
+  };
+
   mover.on("drag", () => {
-    const now = mover.getLatLng();
-    const dLat = now.lat - last.lat;
-    const dLng = now.lng - last.lng;
-    last = now;
-    ["tl", "tr", "bl"].forEach((k, i) => {
-      alignDraft[k] = [alignDraft[k][0] + dLat, alignDraft[k][1] + dLng];
-      corners[i].setLatLng(alignDraft[k]);
-    });
-    showPlan(alignDraft, 0.6);
+    alignDraft.c = toPt(mover.getLatLng());
+    update();
   });
-  alignHandles = [...corners, mover];
+  // Ecke oben rechts: drehen und gleichmäßig vergrößern/verkleinern
+  const cornerAngle = Math.atan2(-PLAN_ASPECT, 1);
+  const cornerFactor = Math.sqrt(1 + PLAN_ASPECT * PLAN_ASPECT) / 2;
+  turner.on("drag", () => {
+    const v = toPt(turner.getLatLng()).subtract(alignDraft.c);
+    alignDraft.angle = Math.atan2(v.y, v.x) - cornerAngle;
+    alignDraft.w = Math.max(50, Math.hypot(v.x, v.y) / cornerFactor);
+    update();
+  });
+  turner.on("dragend", update);
+
+  alignHandles = [mover, turner];
+  alignUpdate = update;
+  update();
+}
+
+let alignUpdate = null;
+function nudge(dAngleDeg, scale) {
+  if (!alignDraft) return;
+  alignDraft.angle += (dAngleDeg * Math.PI) / 180;
+  alignDraft.w *= scale;
+  alignUpdate();
 }
 
 function endAlign() {
   alignHandles.forEach((m) => m.remove());
   alignHandles = [];
   alignDraft = null;
+  alignUpdate = null;
   planHint.hidden = true;
   showPlan(plan || defaultPlan());
 }
 
 document.getElementById("btn-plan").addEventListener("click", () => (alignDraft ? endAlign() : startAlign()));
 document.getElementById("plan-cancel").addEventListener("click", endAlign);
+document.getElementById("plan-rot-left").addEventListener("click", () => nudge(-0.5, 1));
+document.getElementById("plan-rot-right").addEventListener("click", () => nudge(0.5, 1));
+document.getElementById("plan-smaller").addEventListener("click", () => nudge(0, 0.99));
+document.getElementById("plan-bigger").addEventListener("click", () => nudge(0, 1.01));
 document.getElementById("plan-save").addEventListener("click", async () => {
   const round = (c) => [+c[0].toFixed(7), +c[1].toFixed(7)];
-  const next = { tl: round(alignDraft.tl), tr: round(alignDraft.tr), bl: round(alignDraft.bl) };
+  const corners = cornersOf(alignDraft);
+  const next = { tl: round(corners.tl), tr: round(corners.tr), bl: round(corners.bl) };
   try {
     await store.setPlan(next);
     plan = next;
