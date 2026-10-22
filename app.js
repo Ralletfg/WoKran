@@ -8,89 +8,56 @@ modeEl.title = store.mode === "shared" ? "Gemeinsame Daten für alle" : "Demo-Mo
 
 // --- Karte ---------------------------------------------------------------
 
-const map = L.map("map", { zoomControl: true }).setView(cfg.MAP_CENTER, cfg.MAP_ZOOM);
+// Lageplan-Bild und seine Lage auf der Karte (Ecken oben links, oben rechts, unten links).
+// Die Grenze ist im Bild als Pixel-Polygon hinterlegt und wird daraus in Koordinaten umgerechnet.
+const PLAN = cfg.PLAN;
+const planLL = (u, v) => [
+  PLAN.tl[0] + (u / PLAN.size[0]) * (PLAN.tr[0] - PLAN.tl[0]) + (v / PLAN.size[1]) * (PLAN.bl[0] - PLAN.tl[0]),
+  PLAN.tl[1] + (u / PLAN.size[0]) * (PLAN.tr[1] - PLAN.tl[1]) + (v / PLAN.size[1]) * (PLAN.bl[1] - PLAN.tl[1]),
+];
+const boundary = PLAN.boundary.map(([u, v]) => planLL(u, v));
+const siteBounds = L.latLngBounds([planLL(0, 0), planLL(PLAN.size[0], 0), planLL(0, PLAN.size[1]), planLL(PLAN.size[0], PLAN.size[1])]);
 
-const satellite = L.tileLayer(
-  "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  { maxZoom: 20, maxNativeZoom: 19, attribution: "Bilder &copy; Esri, Maxar, Earthstar Geographics" }
-).addTo(map);
-
-// Lageplan liegt zwischen Satellitenbild und Fahrzeugpunkten
-map.createPane("plan").style.zIndex = 350;
-
-const boundaryStyle = { color: "#e5322d", weight: 3, fill: false };
-const boundaryLayer = L.polygon([], boundaryStyle).addTo(map);
-const vehicleLayer = L.layerGroup().addTo(map);
-
-// --- Lageplan ------------------------------------------------------------
-
-const PLAN_IMAGE = "lageplan.png?v=2"; // Version hochzählen, wenn sich das Bild ändert
-let plan = null; // { tl, tr, bl } als [lat, lng]
-let planLayer = null;
-
-// Ohne gespeicherte Lage: Plan über die Geländegrenze legen (Norden oben)
-function defaultPlan() {
-  const b = boundaryLayer.getLatLngs()[0]?.length > 2 ? boundaryLayer.getBounds() : map.getBounds().pad(-0.2);
-  const nw = map.project(b.getNorthWest(), PZ);
-  const se = map.project(b.getSouthEast(), PZ);
-  return cornersOf({ c: nw.add(se).divideBy(2), w: se.x - nw.x, angle: 0 });
-}
-
-// Mischung Satellit/Lageplan: 0 = nur Satellit, 1 = nur Plan; pro Gerät gemerkt
-let planOpacity = 0.7;
-try {
-  const saved = parseFloat(localStorage.getItem("qr-fahrzeuge-mix"));
-  if (!Number.isNaN(saved)) planOpacity = saved;
-} catch {}
-
-const MixControl = L.Control.extend({
-  options: { position: "bottomleft" },
-  onAdd() {
-    const box = L.DomUtil.create("div", "mix-control leaflet-bar");
-    box.innerHTML = '<span>Satellit</span><input type="range" min="0" max="100" step="5" aria-label="Mischung Satellit und Lageplan"><span>Plan</span>';
-    const range = box.querySelector("input");
-    range.value = Math.round(planOpacity * 100);
-    range.addEventListener("input", () => {
-      planOpacity = range.value / 100;
-      try { localStorage.setItem("qr-fahrzeuge-mix", String(planOpacity)); } catch {}
-      if (planLayer && !alignDraft) planLayer.setOpacity(planOpacity);
-    });
-    L.DomEvent.disableClickPropagation(box);
-    L.DomEvent.disableScrollPropagation(box);
-    return box;
-  },
+const map = L.map("map", {
+  zoomControl: true,
+  maxBounds: siteBounds.pad(0.15),
+  maxBoundsViscosity: 1,
+  zoomSnap: 0.25,
 });
-new MixControl().addTo(map);
 
-function showPlan(p, opacity = planOpacity) {
-  const [tl, tr, bl] = [p.tl, p.tr, p.bl].map((c) => L.latLng(c));
-  if (!planLayer) {
-    planLayer = L.imageOverlay.rotated(PLAN_IMAGE, tl, tr, bl, { pane: "plan", opacity, interactive: false });
-    layers.addOverlay(planLayer, "Lageplan");
-    planLayer.addTo(map);
-  } else {
-    planLayer.reposition(tl, tr, bl);
-    planLayer.setOpacity(opacity);
-  }
+const satellite = L.layerGroup([
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 20,
+    maxNativeZoom: 19,
+    attribution: "Bilder &copy; Esri, Maxar, Earthstar Geographics",
+  }),
+  L.polygon(boundary, { color: "#e5322d", weight: 3, fill: false, interactive: false }),
+]);
+const planLayer = L.imageOverlay.rotated(PLAN.image, L.latLng(PLAN.tl), L.latLng(PLAN.tr), L.latLng(PLAN.bl), { interactive: false });
+const planView = L.layerGroup([planLayer]);
+
+let baseName = "Satellit";
+try { baseName = localStorage.getItem("qr-fahrzeuge-karte") || baseName; } catch {}
+(baseName === "Lageplan" ? planView : satellite).addTo(map);
+L.control.layers({ Satellit: satellite, Lageplan: planView }, {}, { collapsed: false, position: "topright" }).addTo(map);
+map.on("baselayerchange", (e) => {
+  document.getElementById("map").classList.toggle("plan-mode", e.name === "Lageplan");
+  try { localStorage.setItem("qr-fahrzeuge-karte", e.name); } catch {}
+});
+document.getElementById("map").classList.toggle("plan-mode", baseName === "Lageplan");
+
+// Nicht weiter herauszoomen, als das Gelände braucht
+function fitSite() {
+  const z = map.getBoundsZoom(siteBounds, false, L.point(16, 16));
+  map.setMinZoom(z);
+  return z;
 }
+map.setView(siteBounds.getCenter(), 16);
+map.fitBounds(siteBounds, { padding: [8, 8] });
+fitSite();
+map.on("resize", fitSite);
 
-async function renderPlan() {
-  if (alignDraft) return;
-  try {
-    plan = await store.getPlan();
-  } catch (err) {
-    console.warn("Lageplan-Lage nicht lesbar (schema.sql aktuell?)", err);
-  }
-  showPlan(plan || defaultPlan());
-}
-
-const layers = L.control.layers({ Satellit: satellite }, {}, { collapsed: false, position: "topright" }).addTo(map);
-
-async function renderBoundary(fit) {
-  const pts = await store.getBoundary();
-  boundaryLayer.setLatLngs(pts || []);
-  if (fit && pts && pts.length > 2) map.fitBounds(boundaryLayer.getBounds(), { padding: [20, 20] });
-}
+const vehicleLayer = L.layerGroup().addTo(map);
 
 let vehicles = [];
 const markers = {}; // vehicle_id -> Leaflet-Marker
@@ -142,158 +109,6 @@ document.getElementById("btn-locate").addEventListener("click", () => {
     (err) => alert("Standort nicht verfügbar: " + err.message),
     { enableHighAccuracy: true, timeout: 15000 }
   );
-});
-
-// --- Geländegrenze festlegen --------------------------------------------
-
-const hint = document.getElementById("edit-hint");
-let draft = null; // Liste von [lat, lng] während der Bearbeitung
-const draftLayer = L.polygon([], { ...boundaryStyle, dashArray: "6 6" });
-
-function setEditing(on) {
-  hint.hidden = !on;
-  draft = on ? [] : null;
-  draftLayer.setLatLngs([]);
-  if (on) draftLayer.addTo(map);
-  else draftLayer.remove();
-  boundaryLayer.setStyle({ opacity: on ? 0.3 : 1 });
-}
-
-map.on("click", (e) => {
-  if (!draft) return;
-  draft.push([e.latlng.lat, e.latlng.lng]);
-  draftLayer.setLatLngs(draft);
-});
-
-document.getElementById("btn-edit").addEventListener("click", () => setEditing(true));
-document.getElementById("edit-cancel").addEventListener("click", () => setEditing(false));
-document.getElementById("edit-undo").addEventListener("click", () => {
-  if (!draft) return;
-  draft.pop();
-  draftLayer.setLatLngs(draft);
-});
-document.getElementById("edit-save").addEventListener("click", async () => {
-  if (!draft || draft.length < 3) return alert("Bitte mindestens drei Punkte setzen.");
-  const pts = draft.map(([lat, lng]) => [+lat.toFixed(6), +lng.toFixed(6)]);
-  try {
-    await store.setBoundary(pts);
-    setEditing(false);
-    renderBoundary(false);
-  } catch (err) {
-    alert("Speichern fehlgeschlagen: " + err.message);
-  }
-});
-
-// --- Lageplan ausrichten -------------------------------------------------
-
-// Der Plan wird als starres Bild behandelt: Mitte, Breite und Drehwinkel,
-// gerechnet in Kartenpixeln auf fester Zoomstufe. So bleibt das Seitenverhältnis erhalten.
-const PLAN_ASPECT = 953 / 1234; // Höhe / Breite von lageplan.png
-const PZ = 20;
-const planHint = document.getElementById("plan-hint");
-let alignDraft = null; // { c: L.Point, w, angle } während des Ausrichtens
-let alignHandles = [];
-
-const toPt = (ll) => map.project(L.latLng(ll), PZ);
-const toLL = (pt) => {
-  const ll = map.unproject(pt, PZ);
-  return [ll.lat, ll.lng];
-};
-
-function cornersOf({ c, w, angle }) {
-  const h = w * PLAN_ASPECT;
-  const cos = Math.cos(angle);
-  const sin = Math.sin(angle);
-  const at = (x, y) => toLL(L.point(c.x + x * cos - y * sin, c.y + x * sin + y * cos));
-  return { tl: at(-w / 2, -h / 2), tr: at(w / 2, -h / 2), bl: at(-w / 2, h / 2) };
-}
-
-function rigidOf(p) {
-  const tl = toPt(p.tl);
-  const tr = toPt(p.tr);
-  const bl = toPt(p.bl);
-  const top = tr.subtract(tl);
-  const w = Math.hypot(top.x, top.y);
-  const angle = Math.atan2(top.y, top.x);
-  // Mitte aus oberer Kante und Winkel, damit ein evtl. verzerrter alter Plan wieder gerade wird
-  const h = w * PLAN_ASPECT;
-  const mid = tl.add(tr).divideBy(2);
-  const c = L.point(mid.x - (h / 2) * Math.sin(angle), mid.y + (h / 2) * Math.cos(angle));
-  return { c, w, angle };
-}
-
-const handleIcon = L.divIcon({ className: "plan-handle", html: "&#10227;", iconSize: [34, 34] });
-
-function startAlign() {
-  if (draft) setEditing(false);
-  alignDraft = rigidOf(plan || defaultPlan());
-  if (!map.hasLayer(planLayer)) planLayer.addTo(map);
-  planHint.hidden = false;
-
-  const mover = L.marker(toLL(alignDraft.c), { draggable: true, icon: L.divIcon({ className: "plan-handle move", html: "&#10021;", iconSize: [34, 34] }) }).addTo(map);
-  const turner = L.marker([0, 0], { draggable: true, icon: handleIcon }).addTo(map);
-
-  const update = () => {
-    const corners = cornersOf(alignDraft);
-    showPlan(corners, 0.6);
-    mover.setLatLng(toLL(alignDraft.c));
-    turner.setLatLng(corners.tr);
-  };
-
-  mover.on("drag", () => {
-    alignDraft.c = toPt(mover.getLatLng());
-    update();
-  });
-  // Ecke oben rechts: drehen und gleichmäßig vergrößern/verkleinern
-  const cornerAngle = Math.atan2(-PLAN_ASPECT, 1);
-  const cornerFactor = Math.sqrt(1 + PLAN_ASPECT * PLAN_ASPECT) / 2;
-  turner.on("drag", () => {
-    const v = toPt(turner.getLatLng()).subtract(alignDraft.c);
-    alignDraft.angle = Math.atan2(v.y, v.x) - cornerAngle;
-    alignDraft.w = Math.max(50, Math.hypot(v.x, v.y) / cornerFactor);
-    update();
-  });
-  turner.on("dragend", update);
-
-  alignHandles = [mover, turner];
-  alignUpdate = update;
-  update();
-}
-
-let alignUpdate = null;
-function nudge(dAngleDeg, scale) {
-  if (!alignDraft) return;
-  alignDraft.angle += (dAngleDeg * Math.PI) / 180;
-  alignDraft.w *= scale;
-  alignUpdate();
-}
-
-function endAlign() {
-  alignHandles.forEach((m) => m.remove());
-  alignHandles = [];
-  alignDraft = null;
-  alignUpdate = null;
-  planHint.hidden = true;
-  showPlan(plan || defaultPlan());
-}
-
-document.getElementById("btn-plan").addEventListener("click", () => (alignDraft ? endAlign() : startAlign()));
-document.getElementById("plan-cancel").addEventListener("click", endAlign);
-document.getElementById("plan-rot-left").addEventListener("click", () => nudge(-0.5, 1));
-document.getElementById("plan-rot-right").addEventListener("click", () => nudge(0.5, 1));
-document.getElementById("plan-smaller").addEventListener("click", () => nudge(0, 0.99));
-document.getElementById("plan-bigger").addEventListener("click", () => nudge(0, 1.01));
-document.getElementById("plan-save").addEventListener("click", async () => {
-  const round = (c) => [+c[0].toFixed(7), +c[1].toFixed(7)];
-  const corners = cornersOf(alignDraft);
-  const next = { tl: round(corners.tl), tr: round(corners.tr), bl: round(corners.bl) };
-  try {
-    await store.setPlan(next);
-    plan = next;
-    endAlign();
-  } catch (err) {
-    alert("Speichern fehlgeschlagen: " + err.message + "\n\nWurde die neue schema.sql in Supabase ausgeführt?");
-  }
 });
 
 // --- Suche --------------------------------------------------------------
@@ -444,7 +259,7 @@ function showDbError(err) {
   console.error(err);
 }
 
-Promise.all([renderBoundary(true), renderVehicles()]).catch(showDbError).finally(renderPlan);
+renderVehicles().catch(showDbError);
 
 // Aufruf über einen gescannten QR-Link (…/?v=FZ-0001)
 const startCode = new URLSearchParams(location.search).get("v");
@@ -454,5 +269,5 @@ if (startCode) {
 }
 
 store.onChange(() => {
-  Promise.all([renderBoundary(false), renderVehicles(), renderPlan()]).catch(showDbError);
+  renderVehicles().catch(showDbError);
 });

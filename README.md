@@ -5,8 +5,10 @@ Läuft im Handy-Browser (Android und iPhone), kann auf den Startbildschirm geleg
 
 ## Stand: Schritt 1
 
-- Satellitenkarte (Esri World Imagery), startet auf dem Gelände
-- Geländegrenze einmalig auf der Karte antippen und speichern (Knopf "Grenze")
+- Oben rechts umschalten zwischen Satellitenkarte (Esri World Imagery) und Lageplan
+- Der Lageplan ist fest an den echten Gebäuden ausgerichtet (an OpenStreetMap-Umrisse angepasst, Werte in `config.js` unter `PLAN`)
+- Die Geländegrenze kommt aus dem Lageplan und erscheint auf beiden Karten gleich
+- Herauszoomen ist nur bis zur Größe des Geländes möglich
 - "Standort" zeigt die eigene GPS-Position mit Genauigkeitskreis
 - Fahrzeuge werden mit ihrem letzten Standort als Punkte angezeigt
 - Datenbasis: Fahrzeuge, Standortverlauf, Geländegrenze
@@ -43,7 +45,8 @@ Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit 
 | `scan.js` | QR-Scanner über die Kamera |
 | `store.js` | Datenzugriff (Supabase oder lokaler Demo-Speicher) |
 | `labels.html`, `labels.css`, `labels.js` | QR-Etiketten anlegen und drucken |
-| `config.js` | Supabase-Zugangsdaten und Kartenstart |
+| `config.js` | Supabase-Zugangsdaten, Lage des Lageplans und Geländegrenze |
+| `lageplan.png` | Lageplan, außerhalb der Grenze transparent |
 | `supabase/schema.sql` | Tabellen für die gemeinsame Datenbank |
 
 ## Gemeinsame Datenbank einrichten (Supabase, kostenlos)
