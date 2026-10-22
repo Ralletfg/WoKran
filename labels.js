@@ -24,7 +24,7 @@ function labelEl(v) {
   const el = document.createElement("div");
   el.className = "label";
   el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
-  for (const [cls, text] of [["name", v.name], ["plate", v.plate], ["code", v.code]]) {
+  for (const [cls, text] of [["name", v.name], ["code", v.code]]) {
     if (!text) continue;
     const d = document.createElement("div");
     d.className = cls;
@@ -43,8 +43,8 @@ async function render() {
 
 async function addMany(rows) {
   const vehicles = await store.listVehicles();
-  for (const [i, { name, plate }] of rows.entries()) {
-    await store.addVehicle({ code: nextCode(vehicles, i), name, plate });
+  for (const [i, name] of rows.entries()) {
+    await store.addVehicle({ code: nextCode(vehicles, i), name });
   }
   render();
 }
@@ -53,7 +53,7 @@ document.getElementById("add-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target;
   try {
-    await addMany([{ name: f.name.value.trim(), plate: f.plate.value.trim() }]);
+    await addMany([f.name.value.trim()]);
     f.reset();
   } catch (err) {
     alert("Speichern fehlgeschlagen: " + err.message);
@@ -64,9 +64,8 @@ document.getElementById("bulk-add").addEventListener("click", async () => {
   const box = document.getElementById("bulk");
   const rows = box.value
     .split("\n")
-    .map((line) => line.split(/[;\t]/).map((s) => s.trim()))
-    .filter(([name]) => name)
-    .map(([name, plate]) => ({ name, plate: plate || "" }));
+    .map((line) => line.split(/[;\t]/)[0].trim())
+    .filter(Boolean);
   if (!rows.length) return;
   try {
     await addMany(rows);

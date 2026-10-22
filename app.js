@@ -68,7 +68,6 @@ function popupContent(v, p) {
   title.textContent = v.name;
   const meta = document.createElement("div");
   meta.textContent = [
-    v.plate,
     v.code,
     new Date(p.created_at).toLocaleString("de-DE"),
     p.source === "manual" ? "von Hand gesetzt" : "GPS",
@@ -82,15 +81,28 @@ async function renderVehicles() {
   const [list, positions] = await Promise.all([store.listVehicles(), store.latestPositions()]);
   vehicles = list;
   const byId = Object.fromEntries(vehicles.map((v) => [v.id, v]));
-  vehicleLayer.clearLayers();
   for (const k of Object.keys(markers)) delete markers[k];
   for (const p of positions) {
     const v = byId[p.vehicle_id];
     if (!v) continue;
-    markers[v.id] = L.circleMarker([p.lat, p.lng], { radius: 8, color: "#fff", weight: 2, fillColor: "#1f6feb", fillOpacity: 1 })
+    markers[v.id] = L.circleMarker([p.lat, p.lng], { radius: 9, color: "#fff", weight: 2, fillColor: "#1f6feb", fillOpacity: 1 })
       .bindPopup(popupContent(v, p))
-      .bindTooltip(v.name, { permanent: true, direction: "right", offset: [8, 0], className: "vlabel" })
-      .addTo(vehicleLayer);
+      .bindTooltip(v.name, { permanent: true, direction: "right", offset: [8, 0], className: "vlabel" });
+  }
+  showVehicle(shownId, false);
+}
+
+// Auf der Karte steht immer nur das gesuchte (oder gerade erfasste) Fahrzeug
+let shownId = null;
+function showVehicle(id, focus = true) {
+  shownId = id;
+  vehicleLayer.clearLayers();
+  const m = id && markers[id];
+  if (!m) return;
+  m.addTo(vehicleLayer);
+  if (focus) {
+    map.setView(m.getLatLng(), Math.max(map.getZoom(), 18));
+    m.openPopup();
   }
 }
 
@@ -118,25 +130,22 @@ const resultsEl = document.getElementById("search-results");
 
 searchEl.addEventListener("input", () => {
   const q = searchEl.value.trim().toLowerCase();
+  if (!q) showVehicle(null);
   const hits = q
-    ? vehicles.filter((v) => [v.name, v.plate, v.code].some((f) => f && f.toLowerCase().includes(q))).slice(0, 20)
+    ? vehicles.filter((v) => [v.name, v.code].some((f) => f && f.toLowerCase().includes(q))).slice(0, 20)
     : [];
   resultsEl.replaceChildren(
     ...hits.map((v) => {
       const li = document.createElement("li");
       li.textContent = v.name;
       const small = document.createElement("small");
-      small.textContent = [v.plate, v.code, markers[v.id] ? "" : "noch kein Standort"].filter(Boolean).join(" · ");
+      small.textContent = [v.code, markers[v.id] ? "" : "noch kein Standort"].filter(Boolean).join(" · ");
       li.append(small);
       li.addEventListener("click", () => {
         resultsEl.hidden = true;
         searchEl.value = v.name;
         searchEl.blur();
-        const m = markers[v.id];
-        if (m) {
-          map.setView(m.getLatLng(), Math.max(map.getZoom(), 18));
-          m.openPopup();
-        }
+        showVehicle(v.id);
       });
       return li;
     })
@@ -189,7 +198,7 @@ async function beginCapture(code) {
     capture.moved = true;
     captureStatus.textContent = "Von Hand verschoben.";
   });
-  document.getElementById("capture-title").textContent = `${vehicle.name}${vehicle.plate ? " · " + vehicle.plate : ""}`;
+  document.getElementById("capture-title").textContent = `${vehicle.name} · ${vehicle.code}`;
   captureEl.hidden = false;
   locateForCapture();
 }
@@ -301,7 +310,9 @@ document.getElementById("capture-save").addEventListener("click", async () => {
       source: capture.moved || capture.accuracy == null ? "manual" : "gps",
       created_by: name,
     });
+    const savedId = capture.vehicle.id;
     endCapture();
+    shownId = savedId;
     await renderVehicles();
   } catch (err) {
     alert("Speichern fehlgeschlagen: " + err.message);

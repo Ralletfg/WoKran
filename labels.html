@@ -16,15 +16,14 @@
   <main class="content no-print">
     <form id="add-form" class="card">
       <h2>Fahrzeug anlegen</h2>
-      <label>Name oder Nummer <input name="name" required placeholder="z. B. Kran 12"></label>
-      <label>Kennzeichen <input name="plate" placeholder="z. B. LAU-AB 123"></label>
+      <label>Kostenträger <input name="name" required placeholder="z. B. 4711"></label>
       <button type="submit" class="primary">Hinzufügen</button>
     </form>
 
     <div class="card">
       <h2>Mehrere auf einmal</h2>
-      <p class="muted">Eine Zeile pro Fahrzeug: Name; Kennzeichen (zum Beispiel aus Excel kopiert).</p>
-      <textarea id="bulk" rows="5" placeholder="Kran 12; LAU-AB 123&#10;Stapler 3"></textarea>
+      <p class="muted">Ein Kostenträger pro Zeile (zum Beispiel eine Spalte aus Excel kopiert).</p>
+      <textarea id="bulk" rows="5" placeholder="4711&#10;4712"></textarea>
       <button id="bulk-add" type="button">Alle hinzufügen</button>
     </div>
 

@@ -10,14 +10,14 @@ Läuft im Handy-Browser (Android und iPhone), kann auf den Startbildschirm geleg
 - Die Geländegrenze kommt aus dem Lageplan und erscheint auf beiden Karten gleich
 - Herauszoomen ist nur bis zur Größe des Geländes möglich
 - "Standort" zeigt die eigene GPS-Position mit Genauigkeitskreis
-- Fahrzeuge werden mit ihrem letzten Standort als Punkte angezeigt
+- Auf der Karte erscheint nur das Fahrzeug, nach dem gesucht wurde (oder das gerade erfasst wurde)
 - Datenbasis: Fahrzeuge, Standortverlauf, Geländegrenze
 
 Ohne Zugangsdaten in `config.js` läuft die App im Demo-Modus, die Daten bleiben dann nur auf dem jeweiligen Gerät.
 
 ## Stand: Schritt 2
 
-- Seite "QR-Etiketten" (`labels.html`): Fahrzeuge einzeln oder als Liste (aus Excel kopiert) anlegen
+- Seite "QR-Etiketten" (`labels.html`): Fahrzeuge über ihren Kostenträger einzeln oder als Liste (aus Excel kopiert) anlegen
 - Jedes Fahrzeug bekommt automatisch einen Code (FZ-0001, FZ-0002, ...)
 - Der QR-Code enthält einen Link auf die App mit diesem Code, die normale Handy-Kamera öffnet also direkt das Fahrzeug
 - "Etiketten drucken" erzeugt ein A4-Blatt mit drei Etiketten pro Zeile (im Druckdialog auch als PDF speicherbar)
@@ -31,8 +31,7 @@ Wichtig: Etiketten erst drucken, wenn die App unter ihrer endgültigen Adresse o
 - Danach misst die App bis zu 10 Sekunden GPS (früher fertig bei 5 m), nimmt die besten Werte und zeigt einen verschiebbaren Marker mit Angabe der Genauigkeit
 - Marker bei Bedarf auf den richtigen Stellplatz ziehen, dann "Standort speichern" (wird als "von Hand" vermerkt)
 - Der eigene Name wird einmal eingegeben und gemerkt, damit man sieht, wer zuletzt gemeldet hat
-- Suche oben nach Name, Kennzeichen oder Code springt zum Fahrzeug auf der Karte
-- Alle Fahrzeuge sind mit Namen auf der Karte beschriftet, ein Tipp zeigt Zeitpunkt, Quelle und Melder
+- Suche oben nach Kostenträger oder Code zeigt das Fahrzeug auf der Karte, ein Tipp zeigt Zeitpunkt, Quelle und Melder
 
 Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit GPS, Öffnen per Etikett-Link, Marker verschieben, Suche.
 
