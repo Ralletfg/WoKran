@@ -7,6 +7,8 @@ create table if not exists site (
   id int primary key default 1 check (id = 1),
   boundary jsonb            -- Liste von [lat, lng]-Punkten
 );
+-- Lage des Lageplan-Bildes auf der Karte: { tl, tr, bl } als [lat, lng]
+alter table site add column if not exists plan jsonb;
 
 -- Fahrzeuge; "code" ist der Inhalt des QR-Codes
 create table if not exists vehicles (

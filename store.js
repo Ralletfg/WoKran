@@ -28,7 +28,16 @@ function createLocalStore() {
     },
     async setBoundary(boundary) {
       const db = load();
-      db.site = { boundary };
+      db.site = { ...db.site, boundary };
+      save(db);
+      notify();
+    },
+    async getPlan() {
+      return load().site?.plan || null;
+    },
+    async setPlan(plan) {
+      const db = load();
+      db.site = { ...db.site, plan };
       save(db);
       notify();
     },
@@ -81,6 +90,14 @@ function createSupabaseStore(url, key) {
     },
     async setBoundary(boundary) {
       check(await sb.from("site").upsert({ id: 1, boundary }));
+    },
+    // Lage des Plan-Bildes: { tl, tr, bl } als [lat, lng]
+    async getPlan() {
+      const rows = check(await sb.from("site").select("plan").eq("id", 1));
+      return rows[0]?.plan || null;
+    },
+    async setPlan(plan) {
+      check(await sb.from("site").upsert({ id: 1, plan }));
     },
     async listVehicles() {
       return check(await sb.from("vehicles").select("*").order("name"));

@@ -152,3 +152,11 @@ input {
   box-shadow: none;
 }
 .leaflet-tooltip.vlabel::before { display: none; }
+
+.plan-handle {
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #e5322d;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+.plan-handle.move { background: #1f6feb; }

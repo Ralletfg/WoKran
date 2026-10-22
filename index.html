@@ -52,13 +52,23 @@
     </div>
   </div>
 
+  <div id="plan-hint" class="hint" hidden>
+    Lageplan ausrichten: Die drei Punkte an den Ecken ziehen, bis Hallen und Straßen über dem Satellitenbild liegen. Der mittlere Punkt verschiebt den ganzen Plan.
+    <div class="hint-actions">
+      <button id="plan-cancel" type="button">Abbrechen</button>
+      <button id="plan-save" type="button" class="primary">Speichern</button>
+    </div>
+  </div>
+
   <nav class="actions">
     <button id="btn-scan" type="button" class="primary">Scannen</button>
     <button id="btn-locate" type="button">Standort</button>
     <button id="btn-edit" type="button">Grenze</button>
+    <button id="btn-plan" type="button">Plan</button>
   </nav>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-imageoverlay-rotated@0.2.1/Leaflet.ImageOverlay.Rotated.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script src="config.js"></script>
