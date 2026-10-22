@@ -155,3 +155,62 @@ input {
 
 /* Lageplan-Ansicht: neutraler Hintergrund statt Satellitenbild */
 #map.plan-mode { background: #f4f4f4; }
+
+/* Anmeldung */
+button.badge { flex: none; min-height: 0; background: none; cursor: pointer; }
+.login {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+.login-card h2, .login-card p { margin: 0; }
+.login-card label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.login-card label[hidden] { display: none; }
+.login-card input {
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+.login-error { color: #cf222e; font-size: 14px; }
+button.link { border: none; background: none; color: var(--accent); min-height: 36px; }
+
+/* Popup, Verlauf, Teilen */
+.popup-actions { display: flex; gap: 6px; margin-top: 8px; }
+.popup-actions button { min-height: 36px; padding: 4px 10px; font-size: 14px; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+button.close { flex: none; min-height: 36px; width: 36px; padding: 0; font-size: 22px; line-height: 1; }
+#panel-body { max-height: 45vh; overflow-y: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.history { list-style: none; margin: 0; padding: 0; }
+.history li { display: flex; flex-direction: column; padding: 8px 4px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.history li.active { background: color-mix(in srgb, #8250df 15%, transparent); }
+.history small { color: var(--muted); }
+.share-text { margin: 0; white-space: pre-wrap; word-break: break-all; font: 13px/1.4 ui-monospace, monospace; color: var(--muted); }
+.share-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  text-align: center;
+  text-decoration: none;
+  color: var(--fg);
+}

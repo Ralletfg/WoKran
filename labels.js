@@ -77,4 +77,4 @@ document.getElementById("bulk-add").addEventListener("click", async () => {
 
 document.getElementById("print").addEventListener("click", () => window.print());
 
-render();
+requireLogin(store).then(render);

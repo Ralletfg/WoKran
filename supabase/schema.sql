@@ -30,25 +30,42 @@ create table if not exists positions (
   created_by text not null default '',
   created_at timestamptz not null default now()
 );
+-- Wer gemeldet hat (Konto der Anmeldung)
+alter table positions add column if not exists user_id uuid references auth.users(id) on delete set null;
 create index if not exists positions_vehicle_time on positions (vehicle_id, created_at desc);
 
 -- Letzter bekannter Standort je Fahrzeug
-create or replace view latest_positions as
+-- security_invoker: die Sicht gilt nur für Angemeldete, wie die Tabelle
+create or replace view latest_positions with (security_invoker = true) as
 select distinct on (vehicle_id) *
 from positions
 order by vehicle_id, created_at desc;
 
--- Prototyp: jeder mit dem Link darf lesen und schreiben.
--- Vor dem echten Einsatz durch eine Anmeldung ersetzen.
+-- Konto und Name des Melders setzt die Datenbank selbst, damit der Verlauf stimmt
+create or replace function set_reporter() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.user_id := auth.uid();
+  new.created_by := coalesce(auth.jwt() -> 'user_metadata' ->> 'name', auth.jwt() ->> 'email', new.created_by);
+  return new;
+end $$;
+drop trigger if exists positions_reporter on positions;
+create trigger positions_reporter before insert on positions
+  for each row execute function set_reporter();
+
+-- Nur angemeldete Mitarbeiter dürfen lesen und schreiben.
 alter table site enable row level security;
 alter table vehicles enable row level security;
 alter table positions enable row level security;
 drop policy if exists "prototype all" on site;
 drop policy if exists "prototype all" on vehicles;
 drop policy if exists "prototype all" on positions;
-create policy "prototype all" on site for all using (true) with check (true);
-create policy "prototype all" on vehicles for all using (true) with check (true);
-create policy "prototype all" on positions for all using (true) with check (true);
+drop policy if exists "angemeldet" on site;
+drop policy if exists "angemeldet" on vehicles;
+drop policy if exists "angemeldet" on positions;
+create policy "angemeldet" on site for all to authenticated using (true) with check (true);
+create policy "angemeldet" on vehicles for all to authenticated using (true) with check (true);
+create policy "angemeldet" on positions for all to authenticated using (true) with check (true);
 
 -- Live-Aktualisierung für alle offenen Geräte (mehrfach ausführbar)
 do $$

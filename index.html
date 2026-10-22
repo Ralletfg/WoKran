@@ -14,6 +14,7 @@
     <h1>Fahrzeuge</h1>
     <span class="bar-right">
       <span id="mode" class="badge"></span>
+      <button id="user" type="button" class="badge" hidden></button>
       <a href="labels.html" class="badge">QR-Etiketten</a>
     </span>
   </header>
@@ -35,7 +36,6 @@
   <div id="capture" class="hint" hidden>
     <strong id="capture-title"></strong>
     <div id="capture-status" class="muted"></div>
-    <label id="capture-name-row">Dein Name <input id="capture-name" autocomplete="name"></label>
     <div class="hint-actions">
       <button id="capture-gps" type="button">GPS neu holen</button>
       <button id="capture-cancel" type="button">Abbrechen</button>
@@ -43,7 +43,13 @@
     </div>
   </div>
 
-
+  <div id="panel" class="hint" hidden>
+    <div class="panel-head">
+      <strong id="panel-title"></strong>
+      <button id="panel-close" type="button" class="close" aria-label="Schließen">×</button>
+    </div>
+    <div id="panel-body"></div>
+  </div>
 
   <nav class="actions">
     <button id="btn-scan" type="button" class="primary">Scannen</button>
@@ -57,6 +63,7 @@
   <script src="config.js"></script>
   <script src="store.js"></script>
   <script src="scan.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

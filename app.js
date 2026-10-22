@@ -62,19 +62,131 @@ const vehicleLayer = L.layerGroup().addTo(map);
 let vehicles = [];
 const markers = {}; // vehicle_id -> Leaflet-Marker
 
+const fmtTime = (iso) => new Date(iso).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+const fmtSource = (p) => (p.source === "manual" ? "von Hand gesetzt" : "GPS" + (p.accuracy ? ` ±${Math.round(p.accuracy)} m` : ""));
+
 function popupContent(v, p) {
   const el = document.createElement("div");
   const title = document.createElement("strong");
   title.textContent = v.name;
   const meta = document.createElement("div");
-  meta.textContent = [
-    v.code,
-    new Date(p.created_at).toLocaleString("de-DE"),
-    p.source === "manual" ? "von Hand gesetzt" : "GPS",
-    p.created_by,
-  ].filter(Boolean).join(" · ");
-  el.append(title, meta);
+  meta.textContent = [v.code, fmtTime(p.created_at), fmtSource(p), p.created_by].filter(Boolean).join(" · ");
+  const actions = document.createElement("div");
+  actions.className = "popup-actions";
+  for (const [label, fn] of [["Verlauf", () => showHistory(v)], ["Teilen", () => shareVehicle(v, p)]]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.addEventListener("click", fn);
+    actions.append(b);
+  }
+  el.append(title, meta, actions);
   return el;
+}
+
+// --- Seitenleiste für Verlauf und Teilen -----------------------------------
+
+const panelEl = document.getElementById("panel");
+let panelLayer = L.layerGroup().addTo(map);
+
+function openPanel(title, ...nodes) {
+  document.getElementById("panel-title").textContent = title;
+  document.getElementById("panel-body").replaceChildren(...nodes);
+  panelLayer.clearLayers();
+  map.closePopup();
+  panelEl.hidden = false;
+}
+function closePanel() {
+  panelEl.hidden = true;
+  panelLayer.clearLayers();
+}
+document.getElementById("panel-close").addEventListener("click", closePanel);
+
+// Verlauf: letzte Meldungen, ein Tipp zeigt den damaligen Platz auf der Karte
+async function showHistory(v) {
+  const list = document.createElement("ol");
+  list.className = "history";
+  list.textContent = "Lade …";
+  openPanel(`Verlauf ${v.name} · ${v.code}`, list);
+  try {
+    const rows = await store.history(v.id);
+    list.replaceChildren(
+      ...rows.map((p, i) => {
+        const li = document.createElement("li");
+        const when = document.createElement("strong");
+        when.textContent = fmtTime(p.created_at) + (i === 0 ? " (aktuell)" : "");
+        const who = document.createElement("small");
+        who.textContent = [p.created_by || "unbekannt", fmtSource(p)].join(" · ");
+        li.append(when, who);
+        li.addEventListener("click", () => {
+          list.querySelectorAll(".active").forEach((x) => x.classList.remove("active"));
+          li.classList.add("active");
+          panelLayer.clearLayers();
+          L.circleMarker([p.lat, p.lng], { radius: 8, color: "#fff", weight: 2, fillColor: "#8250df", fillOpacity: 1 })
+            .bindTooltip(fmtTime(p.created_at), { permanent: true, direction: "right", offset: [8, 0], className: "vlabel" })
+            .addTo(panelLayer);
+          map.setView([p.lat, p.lng], Math.max(map.getZoom(), 18));
+        });
+        return li;
+      })
+    );
+    if (!rows.length) list.textContent = "Noch keine Meldungen.";
+  } catch (err) {
+    list.textContent = "Verlauf nicht verfügbar: " + err.message;
+  }
+}
+
+// Teilen: auf dem Handy über das System-Menü (WhatsApp, Teams, …), sonst über Links
+function appLink(v) {
+  const u = new URL("./", location.href);
+  u.searchParams.set("f", v.code);
+  return u.href;
+}
+async function shareVehicle(v, p) {
+  const text = [
+    `${v.name} (${v.code})`,
+    `Standort: https://www.google.com/maps?q=${p.lat},${p.lng}`,
+    `Gemeldet ${fmtTime(p.created_at)}` + (p.created_by ? ` von ${p.created_by}` : ""),
+    `In der App: ${appLink(v)}`,
+  ].join("\n");
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: `Standort ${v.name}`, text });
+      return;
+    } catch (err) {
+      if (err.name === "AbortError") return;
+    }
+  }
+  const link = (label, href) => {
+    const a = document.createElement("a");
+    a.className = "share-link";
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = label;
+    return a;
+  };
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.textContent = "Text kopieren";
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      copy.textContent = "Kopiert";
+    } catch {
+      copy.textContent = "Kopieren nicht möglich";
+    }
+  });
+  const preview = document.createElement("pre");
+  preview.className = "share-text";
+  preview.textContent = text;
+  openPanel(
+    `${v.name} teilen`,
+    preview,
+    link("WhatsApp", "https://wa.me/?text=" + encodeURIComponent(text)),
+    link("Microsoft Teams", "https://teams.microsoft.com/share?href=" + encodeURIComponent(appLink(v)) + "&msgText=" + encodeURIComponent(text)),
+    copy
+  );
 }
 
 async function renderVehicles() {
@@ -158,11 +270,8 @@ searchEl.addEventListener("input", () => {
 const scannerEl = document.getElementById("scanner");
 const captureEl = document.getElementById("capture");
 const captureStatus = document.getElementById("capture-status");
-const nameInput = document.getElementById("capture-name");
 let stopScan = null;
 let capture = null; // { vehicle, marker, accuracy, moved }
-
-try { nameInput.value = localStorage.getItem("qr-fahrzeuge-name") || ""; } catch {}
 
 document.getElementById("btn-scan").addEventListener("click", () => {
   if (!navigator.mediaDevices?.getUserMedia) return alert("Dieser Browser kann nicht auf die Kamera zugreifen.");
@@ -191,6 +300,7 @@ async function beginCapture(code) {
   if (!vehicle) return alert(`Unbekannter Code "${code}". Ist das Fahrzeug unter QR-Etiketten angelegt?`);
 
   endCapture();
+  closePanel();
   const marker = L.marker(map.getCenter(), { draggable: true, autoPan: true }).addTo(map);
   capture = { vehicle, marker, accuracy: null, moved: false };
   marker.on("dragend", () => {
@@ -298,8 +408,6 @@ document.getElementById("capture-gps").addEventListener("click", locateForCaptur
 document.getElementById("capture-cancel").addEventListener("click", endCapture);
 document.getElementById("capture-save").addEventListener("click", async () => {
   if (!capture) return;
-  const name = nameInput.value.trim();
-  try { localStorage.setItem("qr-fahrzeuge-name", name); } catch {}
   const { lat, lng } = capture.marker.getLatLng();
   try {
     await store.addPosition({
@@ -308,7 +416,7 @@ document.getElementById("capture-save").addEventListener("click", async () => {
       lng: +lng.toFixed(7),
       accuracy: capture.moved ? null : capture.accuracy,
       source: capture.moved || capture.accuracy == null ? "manual" : "gps",
-      created_by: name,
+      created_by: user?.name || "",
     });
     const savedId = capture.vehicle.id;
     endCapture();
@@ -329,15 +437,40 @@ function showDbError(err) {
   console.error(err);
 }
 
-renderVehicles().catch(showDbError);
+// Angemeldeter Mitarbeiter; sein Name steht bei jeder Meldung im Verlauf
+let user = null;
+const userEl = document.getElementById("user");
+userEl.addEventListener("click", async () => {
+  if (!confirm(`Angemeldet als ${user.name}. Abmelden?`)) return;
+  await store.signOut();
+  location.reload();
+});
 
-// Aufruf über einen gescannten QR-Link (…/?v=FZ-0001)
-const startCode = new URLSearchParams(location.search).get("v");
-if (startCode) {
-  history.replaceState(null, "", location.pathname);
-  beginCapture(startCode);
-}
+// QR-Link (…/?v=FZ-0001) erfasst den Standort, geteilter Link (…/?f=FZ-0001) zeigt das Fahrzeug
+const params = new URLSearchParams(location.search);
+const startCode = params.get("v");
+const findCode = params.get("f");
 
-store.onChange(() => {
-  renderVehicles().catch(showDbError);
+requireLogin(store).then(async (u) => {
+  user = u;
+  userEl.textContent = u.name;
+  userEl.title = "Abmelden";
+  userEl.hidden = false;
+  try {
+    await renderVehicles();
+  } catch (err) {
+    showDbError(err);
+  }
+  if (startCode || findCode) history.replaceState(null, "", location.pathname);
+  if (startCode) beginCapture(startCode);
+  else if (findCode) {
+    const v = vehicles.find((x) => x.code === findCode);
+    if (v) {
+      searchEl.value = v.name;
+      showVehicle(v.id);
+    }
+  }
+  store.onChange(() => {
+    renderVehicles().catch(showDbError);
+  });
 });

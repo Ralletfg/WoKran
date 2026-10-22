@@ -21,8 +21,25 @@ function createLocalStore() {
   const listeners = new Set();
   const notify = () => listeners.forEach((fn) => fn());
 
+  const USER_KEY = "qr-fahrzeuge-user";
+
   return {
     mode: "demo",
+    // Demo: Name genügt, er bleibt auf dem Gerät
+    async currentUser() {
+      try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; }
+    },
+    async signUp({ name }) {
+      const u = { id: "demo", name, email: "" };
+      try { localStorage.setItem(USER_KEY, JSON.stringify(u)); } catch {}
+      return u;
+    },
+    async signIn() {
+      return this.currentUser();
+    },
+    async signOut() {
+      try { localStorage.removeItem(USER_KEY); } catch {}
+    },
     async getBoundary() {
       return load().site?.boundary || null;
     },
@@ -59,6 +76,12 @@ function createLocalStore() {
       }
       return Object.values(latest);
     },
+    async history(vehicle_id, limit = 20) {
+      return load().positions
+        .filter((p) => p.vehicle_id === vehicle_id)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+        .slice(0, limit);
+    },
     async addPosition({ vehicle_id, lat, lng, accuracy, source, created_by }) {
       const db = load();
       db.positions.push({
@@ -82,8 +105,28 @@ function createSupabaseStore(url, key) {
     return data;
   };
 
+  const toUser = (u) => u && { id: u.id, email: u.email, name: u.user_metadata?.name || u.email };
+
   return {
     mode: "shared",
+    async currentUser() {
+      const { data } = await sb.auth.getSession();
+      return toUser(data.session?.user);
+    },
+    // Liefert null, wenn Supabase erst eine Bestätigungs-E-Mail verlangt
+    async signUp({ email, password, name }) {
+      const data = check(await sb.auth.signUp({
+        email, password,
+        options: { data: { name }, emailRedirectTo: new URL("./", location.href).href },
+      }));
+      return data.session ? toUser(data.user) : null;
+    },
+    async signIn({ email, password }) {
+      return toUser(check(await sb.auth.signInWithPassword({ email, password })).user);
+    },
+    async signOut() {
+      await sb.auth.signOut();
+    },
     async getBoundary() {
       const rows = check(await sb.from("site").select("boundary").eq("id", 1));
       return rows[0]?.boundary || null;
@@ -107,6 +150,10 @@ function createSupabaseStore(url, key) {
     },
     async latestPositions() {
       return check(await sb.from("latest_positions").select("*"));
+    },
+    async history(vehicle_id, limit = 20) {
+      return check(await sb.from("positions").select("*").eq("vehicle_id", vehicle_id)
+        .order("created_at", { ascending: false }).limit(limit));
     },
     async addPosition(p) {
       check(await sb.from("positions").insert(p));

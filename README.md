@@ -30,17 +30,25 @@ Wichtig: Etiketten erst drucken, wenn die App unter ihrer endgültigen Adresse o
 - Alternativ öffnet die normale Handy-Kamera den Link auf dem Etikett direkt in der App
 - Danach misst die App bis zu 10 Sekunden GPS (früher fertig bei 5 m), nimmt die besten Werte und zeigt einen verschiebbaren Marker mit Angabe der Genauigkeit
 - Marker bei Bedarf auf den richtigen Stellplatz ziehen, dann "Standort speichern" (wird als "von Hand" vermerkt)
-- Der eigene Name wird einmal eingegeben und gemerkt, damit man sieht, wer zuletzt gemeldet hat
 - Suche oben nach Kostenträger oder Code zeigt das Fahrzeug auf der Karte, ein Tipp zeigt Zeitpunkt, Quelle und Melder
 
 Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit GPS, Öffnen per Etikett-Link, Marker verschieben, Suche.
+
+## Stand: Schritt 4
+
+- Anmeldung für Mitarbeiter mit E-Mail und Passwort, beim Registrieren wird der Name hinterlegt (`auth.js`)
+- Ohne Anmeldung lässt die Datenbank weder lesen noch schreiben; den Namen des Melders setzt die Datenbank selbst
+- Im Fahrzeug-Popup "Verlauf": die letzten 20 Meldungen mit Zeit, Melder und GPS oder von Hand, ein Tipp zeigt den damaligen Platz
+- "Teilen": auf dem Handy über das normale Teilen-Menü (WhatsApp, Teams, ...), am PC über WhatsApp- und Teams-Links oder Kopieren
+- Der geteilte Text enthält einen Google-Maps-Link und einen App-Link (`?f=FZ-0001`), der das Fahrzeug direkt auf der Karte zeigt
 
 ## Dateien
 
 | Datei | Inhalt |
 |---|---|
 | `index.html`, `style.css` | Oberfläche |
-| `app.js` | Karte, eigener Standort, Grenz-Editor, Suche, Standort erfassen |
+| `app.js` | Karte, eigener Standort, Suche, Standort erfassen, Verlauf, Teilen |
+| `auth.js` | Anmeldemaske |
 | `scan.js` | QR-Scanner über die Kamera |
 | `store.js` | Datenzugriff (Supabase oder lokaler Demo-Speicher) |
 | `labels.html`, `labels.css`, `labels.js` | QR-Etiketten anlegen und drucken |
@@ -53,8 +61,10 @@ Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit 
 1. Auf supabase.com ein Konto und ein neues Projekt anlegen (Region: Frankfurt).
 2. Im Projekt "SQL Editor" öffnen, den Inhalt von `supabase/schema.sql` einfügen und ausführen.
 3. Unter "Project Settings → API" die "Project URL" und den "anon public"-Schlüssel in `config.js` eintragen.
+4. Unter "Authentication → URL Configuration" als Site URL die Adresse der App eintragen (https://ralletfg.github.io/WoKran/).
+5. Für den Prototyp unter "Authentication → Sign In / Providers → Email" die Option "Confirm email" ausschalten. Sonst muss jeder neue Mitarbeiter erst den Link in einer Bestätigungs-E-Mail öffnen.
 
-Der anon-Schlüssel ist für den Browser gedacht und darf in der App stehen. Im Prototyp darf jeder mit dem Link lesen und schreiben, vor dem echten Einsatz kommt eine Anmeldung dazu.
+Der anon-Schlüssel ist für den Browser gedacht und darf in der App stehen. Lesen und Schreiben geht nur nach der Anmeldung.
 
 ## Veröffentlichen
 
