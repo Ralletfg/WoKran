@@ -28,7 +28,7 @@ Wichtig: Etiketten erst drucken, wenn die App unter ihrer endgültigen Adresse o
 
 - "Scannen" öffnet die Kamera und erkennt den QR-Code (Android über den eingebauten Detektor, iPhone über jsQR)
 - Alternativ öffnet die normale Handy-Kamera den Link auf dem Etikett direkt in der App
-- Danach wird die GPS-Position geholt und als verschiebbarer Marker gezeigt, mit Angabe der Genauigkeit
+- Danach misst die App bis zu 10 Sekunden GPS (früher fertig bei 5 m), nimmt die besten Werte und zeigt einen verschiebbaren Marker mit Angabe der Genauigkeit
 - Marker bei Bedarf auf den richtigen Stellplatz ziehen, dann "Standort speichern" (wird als "von Hand" vermerkt)
 - Der eigene Name wird einmal eingegeben und gemerkt, damit man sieht, wer zuletzt gemeldet hat
 - Suche oben nach Name, Kennzeichen oder Code springt zum Fahrzeug auf der Karte

@@ -185,6 +185,7 @@ async function beginCapture(code) {
   const marker = L.marker(map.getCenter(), { draggable: true, autoPan: true }).addTo(map);
   capture = { vehicle, marker, accuracy: null, moved: false };
   marker.on("dragend", () => {
+    stopGps();
     capture.moved = true;
     captureStatus.textContent = "Von Hand verschoben.";
   });
@@ -193,34 +194,92 @@ async function beginCapture(code) {
   locateForCapture();
 }
 
+// GPS bis zu 10 Sekunden messen und die besten Werte nehmen: Die erste Messung ist oft
+// ungenau. Messungen nahe der besten werden nach Genauigkeit gewichtet gemittelt.
+const GPS_SECONDS = 10;
+const GPS_GOOD_ENOUGH = 5; // Meter: früher aufhören, wenn so genau
+
+let gpsWatch = null;
+let gpsTimer = null;
+
+function stopGps() {
+  if (gpsWatch != null) navigator.geolocation.clearWatch(gpsWatch);
+  clearInterval(gpsTimer);
+  gpsWatch = gpsTimer = null;
+}
+
 function locateForCapture() {
   if (!capture) return;
+  stopGps();
+  capture.moved = false;
   if (!navigator.geolocation) {
     captureStatus.textContent = "Kein GPS. Bitte den Marker auf den Stellplatz ziehen.";
     return;
   }
-  captureStatus.textContent = "GPS-Position wird ermittelt …";
-  navigator.geolocation.getCurrentPosition(
+  const readings = [];
+  const started = Date.now();
+  let centered = false;
+
+  const best = () => {
+    const minAcc = Math.min(...readings.map((r) => r.acc));
+    const use = readings.filter((r) => r.acc <= minAcc * 1.5);
+    const w = use.map((r) => 1 / (r.acc * r.acc));
+    const sum = w.reduce((x, y) => x + y, 0);
+    return {
+      lat: use.reduce((x, r, i) => x + r.lat * w[i], 0) / sum,
+      lng: use.reduce((x, r, i) => x + r.lng * w[i], 0) / sum,
+      acc: minAcc,
+    };
+  };
+
+  const show = (done) => {
+    if (!capture) return;
+    const left = Math.max(0, GPS_SECONDS - Math.round((Date.now() - started) / 1000));
+    if (!readings.length) {
+      captureStatus.textContent = `GPS-Position wird ermittelt … (${left} s)`;
+      return;
+    }
+    const b = best();
+    if (!capture.moved) {
+      capture.marker.setLatLng([b.lat, b.lng]);
+      capture.accuracy = b.acc;
+      if (!centered) {
+        map.setView([b.lat, b.lng], Math.max(map.getZoom(), 18));
+        centered = true;
+      }
+    }
+    captureStatus.textContent = done
+      ? `GPS-Genauigkeit etwa ${Math.round(b.acc)} m.` + (b.acc > 15 ? " Bei Bedarf den Marker auf den richtigen Platz ziehen." : "")
+      : `Messe GPS … etwa ${Math.round(b.acc)} m (noch ${left} s, du kannst schon speichern)`;
+  };
+
+  const finish = () => {
+    stopGps();
+    if (!capture || capture.moved) return;
+    if (readings.length) show(true);
+    else captureStatus.textContent = "GPS nicht verfügbar. Bitte den Marker auf den Stellplatz ziehen.";
+  };
+
+  captureStatus.textContent = `GPS-Position wird ermittelt … (${GPS_SECONDS} s)`;
+  gpsWatch = navigator.geolocation.watchPosition(
     ({ coords }) => {
-      if (!capture) return;
-      const ll = [coords.latitude, coords.longitude];
-      capture.marker.setLatLng(ll);
-      capture.accuracy = coords.accuracy;
-      capture.moved = false;
-      map.setView(ll, Math.max(map.getZoom(), 18));
-      captureStatus.textContent =
-        `GPS-Genauigkeit etwa ${Math.round(coords.accuracy)} m.` +
-        (coords.accuracy > 15 ? " Bei Bedarf den Marker auf den richtigen Platz ziehen." : "");
+      readings.push({ lat: coords.latitude, lng: coords.longitude, acc: coords.accuracy });
+      if (coords.accuracy <= GPS_GOOD_ENOUGH) finish();
+      else show(false);
     },
     (err) => {
-      if (!capture) return;
-      captureStatus.textContent = `GPS nicht verfügbar (${err.message}). Bitte den Marker auf den Stellplatz ziehen.`;
+      if (err.code === err.PERMISSION_DENIED) {
+        stopGps();
+        if (capture) captureStatus.textContent = "Standortzugriff verweigert. Bitte den Marker auf den Stellplatz ziehen.";
+      }
     },
-    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+    { enableHighAccuracy: true, timeout: GPS_SECONDS * 1000, maximumAge: 0 }
   );
+  gpsTimer = setInterval(() => (Date.now() - started >= GPS_SECONDS * 1000 ? finish() : show(false)), 1000);
 }
 
 function endCapture() {
+  stopGps();
   capture?.marker.remove();
   capture = null;
   captureEl.hidden = true;
