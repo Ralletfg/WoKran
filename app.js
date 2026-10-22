@@ -24,7 +24,7 @@ const vehicleLayer = L.layerGroup().addTo(map);
 
 // --- Lageplan ------------------------------------------------------------
 
-const PLAN_IMAGE = "lageplan.png";
+const PLAN_IMAGE = "lageplan.png?v=2"; // Version hochzählen, wenn sich das Bild ändert
 let plan = null; // { tl, tr, bl } als [lat, lng]
 let planLayer = null;
 
@@ -38,7 +38,33 @@ function defaultPlan() {
   };
 }
 
-function showPlan(p, opacity = 1) {
+// Mischung Satellit/Lageplan: 0 = nur Satellit, 1 = nur Plan; pro Gerät gemerkt
+let planOpacity = 0.7;
+try {
+  const saved = parseFloat(localStorage.getItem("qr-fahrzeuge-mix"));
+  if (!Number.isNaN(saved)) planOpacity = saved;
+} catch {}
+
+const MixControl = L.Control.extend({
+  options: { position: "bottomleft" },
+  onAdd() {
+    const box = L.DomUtil.create("div", "mix-control leaflet-bar");
+    box.innerHTML = '<span>Satellit</span><input type="range" min="0" max="100" step="5" aria-label="Mischung Satellit und Lageplan"><span>Plan</span>';
+    const range = box.querySelector("input");
+    range.value = Math.round(planOpacity * 100);
+    range.addEventListener("input", () => {
+      planOpacity = range.value / 100;
+      try { localStorage.setItem("qr-fahrzeuge-mix", String(planOpacity)); } catch {}
+      if (planLayer && !alignDraft) planLayer.setOpacity(planOpacity);
+    });
+    L.DomEvent.disableClickPropagation(box);
+    L.DomEvent.disableScrollPropagation(box);
+    return box;
+  },
+});
+new MixControl().addTo(map);
+
+function showPlan(p, opacity = planOpacity) {
   const [tl, tr, bl] = [p.tl, p.tr, p.bl].map((c) => L.latLng(c));
   if (!planLayer) {
     planLayer = L.imageOverlay.rotated(PLAN_IMAGE, tl, tr, bl, { pane: "plan", opacity, interactive: false });
