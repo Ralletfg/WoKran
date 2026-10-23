@@ -105,7 +105,7 @@ function createSupabaseStore(url, key) {
     return data;
   };
 
-  const toUser = (u) => u && { id: u.id, email: u.email, name: u.user_metadata?.name || u.email.split("@")[0] };
+  const toUser = (u) => u && { id: u.id, email: u.email, name: u.user_metadata?.name || u.user_metadata?.full_name || u.email.split("@")[0] };
 
   return {
     mode: "shared",
@@ -123,6 +123,13 @@ function createSupabaseStore(url, key) {
     },
     async signIn({ email, password }) {
       return toUser(check(await sb.auth.signInWithPassword({ email, password })).user);
+    },
+    // Zurück auf dieselbe Adresse, damit ein gescannter Link (?v=…) erhalten bleibt
+    async signInWithMicrosoft() {
+      check(await sb.auth.signInWithOAuth({
+        provider: "azure",
+        options: { scopes: "email", redirectTo: location.href },
+      }));
     },
     async signOut() {
       await sb.auth.signOut();

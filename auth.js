@@ -30,6 +30,7 @@ window.requireLogin = function (store) {
         <p class="login-error" hidden></p>
         <button type="submit" class="primary">Anmelden</button>
         <button type="button" class="link" ${demo ? "hidden" : ""}>Noch kein Konto? Registrieren</button>
+        <button type="button" class="microsoft" ${!demo && window.APP_CONFIG.MICROSOFT_LOGIN ? "" : "hidden"}>Mit Microsoft-Firmenkonto anmelden</button>
       </form>`;
     document.body.append(box);
 
@@ -39,6 +40,15 @@ window.requireLogin = function (store) {
     const toggle = box.querySelector("button.link");
     const submit = box.querySelector("button[type=submit]");
     let register = demo;
+
+    // Microsoft-Anmeldung: leitet zu Microsoft weiter und kommt mit Sitzung zurück
+    box.querySelector("button.microsoft").addEventListener("click", async () => {
+      try {
+        await store.signInWithMicrosoft();
+      } catch (err) {
+        showError(translate(err));
+      }
+    });
 
     toggle.addEventListener("click", () => {
       register = !register;

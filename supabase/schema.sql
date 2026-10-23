@@ -46,7 +46,10 @@ create or replace function set_reporter() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   new.user_id := auth.uid();
-  new.created_by := coalesce(auth.jwt() -> 'user_metadata' ->> 'name', auth.jwt() ->> 'email', new.created_by);
+  new.created_by := coalesce(
+    auth.jwt() -> 'user_metadata' ->> 'name',
+    auth.jwt() -> 'user_metadata' ->> 'full_name',   -- Microsoft-Anmeldung
+    auth.jwt() ->> 'email', new.created_by);
   return new;
 end $$;
 drop trigger if exists positions_reporter on positions;

@@ -6,6 +6,8 @@ window.APP_CONFIG = {
   // Lageplan (Werk Faunberg, Lauf an der Pegnitz), an OpenStreetMap-Gebäudeumrisse angepasst.
   // tl/tr/bl: Koordinaten der Bildecken oben links, oben rechts, unten links.
   // boundary: Geländegrenze in Bildpixeln, wird daraus in Koordinaten umgerechnet.
+  // Erst auf true setzen, wenn Microsoft (Azure) in Supabase eingerichtet ist
+  MICROSOFT_LOGIN: false,
   PLAN: {
     image: "lageplan.png?v=3",
     size: [1234, 953],
