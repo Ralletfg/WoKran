@@ -105,7 +105,7 @@ function createSupabaseStore(url, key) {
     return data;
   };
 
-  const toUser = (u) => u && { id: u.id, email: u.email, name: u.user_metadata?.name || u.email };
+  const toUser = (u) => u && { id: u.id, email: u.email, name: u.user_metadata?.name || u.email.split("@")[0] };
 
   return {
     mode: "shared",

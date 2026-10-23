@@ -36,7 +36,7 @@ Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit 
 
 ## Stand: Schritt 4
 
-- Anmeldung für Mitarbeiter mit E-Mail und Passwort, beim Registrieren wird der Name hinterlegt (`auth.js`)
+- Anmeldung für Mitarbeiter mit Benutzername oder Personalnummer und Passwort, beim Registrieren wird der Name hinterlegt (`auth.js`). Intern wird daraus eine E-Mail-Kennung ohne Postfach, deshalb muss "Confirm email" aus sein. Ein vergessenes Passwort setzt man im Supabase-Dashboard unter Authentication → Users zurück.
 - Ohne Anmeldung lässt die Datenbank weder lesen noch schreiben; den Namen des Melders setzt die Datenbank selbst
 - Im Fahrzeug-Popup "Verlauf": die letzten 20 Meldungen mit Zeit, Melder und GPS oder von Hand, ein Tipp zeigt den damaligen Platz
 - "Teilen": auf dem Handy über das normale Teilen-Menü (WhatsApp, Teams, ...), am PC über WhatsApp- und Teams-Links oder Kopieren

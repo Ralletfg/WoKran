@@ -1,5 +1,16 @@
 // Anmeldung der Mitarbeiter. Zeigt eine Anmeldemaske über der Seite, bis jemand
 // angemeldet ist, und liefert dann { id, name, email }. Im Demo-Modus reicht ein Name.
+// Statt einer E-Mail gibt man einen Benutzernamen oder die Personalnummer ein. Supabase
+// braucht intern eine E-Mail-Adresse, daher wird daraus eine Kennung gebildet, an die
+// nie Post geht ("Confirm email" ist aus). Eine echte E-Mail-Adresse geht weiterhin.
+const LOGIN_DOMAIN = "wokran.ralletfg.github.io";
+function loginEmail(user) {
+  if (user.includes("@")) return user;
+  const slug = user.toLowerCase()
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .replace(/[^a-z0-9._-]+/g, ".").replace(/^\.+|\.+$/g, "");
+  return slug && `${slug}@${LOGIN_DOMAIN}`;
+}
 
 window.requireLogin = function (store) {
   return new Promise(async (resolve) => {
@@ -12,9 +23,9 @@ window.requireLogin = function (store) {
     box.innerHTML = `
       <form class="login-card">
         <h2>Anmelden</h2>
-        <p class="muted">${demo ? "Demo-Modus: Name eingeben genügt." : "Mit deiner E-Mail-Adresse und deinem Passwort."}</p>
+        <p class="muted">${demo ? "Demo-Modus: Name eingeben genügt." : "Mit deinem Benutzernamen oder deiner Personalnummer und deinem Passwort."}</p>
         <label data-for="name" ${demo ? "" : "hidden"}>Vor- und Nachname <input name="name" autocomplete="name"></label>
-        <label ${demo ? "hidden" : ""}>E-Mail <input name="email" type="email" autocomplete="email"></label>
+        <label ${demo ? "hidden" : ""}>Benutzername oder Personalnummer <input name="email" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
         <label ${demo ? "hidden" : ""}>Passwort <input name="password" type="password" autocomplete="current-password" minlength="6"></label>
         <p class="login-error" hidden></p>
         <button type="submit" class="primary">Anmelden</button>
@@ -43,13 +54,14 @@ window.requireLogin = function (store) {
       e.preventDefault();
       errEl.hidden = true;
       const name = form.name.value.trim();
-      const email = form.email.value.trim();
+      const email = loginEmail(form.email.value.trim());
       const password = form.password.value;
       if (register && !name) return showError("Bitte deinen Namen eintragen.");
+      if (!demo && !email) return showError("Bitte Benutzername oder Personalnummer eintragen.");
       submit.disabled = true;
       try {
         const u = register ? await store.signUp({ email, password, name }) : await store.signIn({ email, password });
-        if (!u) return showError("Konto angelegt. Bitte den Link in der Bestätigungs-E-Mail öffnen und dich dann anmelden.");
+        if (!u) return showError("Konto angelegt, aber Supabase verlangt noch eine E-Mail-Bestätigung. Bitte dort \"Confirm email\" ausschalten.");
         box.remove();
         resolve(u);
       } catch (err) {
@@ -68,9 +80,9 @@ window.requireLogin = function (store) {
 
 function translate(err) {
   const m = String(err?.message || err);
-  if (/invalid login credentials/i.test(m)) return "E-Mail oder Passwort falsch.";
+  if (/invalid login credentials/i.test(m)) return "Benutzername oder Passwort falsch.";
   if (/email not confirmed/i.test(m)) return "Bitte zuerst den Link in der Bestätigungs-E-Mail öffnen.";
-  if (/already registered/i.test(m)) return "Diese E-Mail hat schon ein Konto. Bitte anmelden.";
+  if (/already registered/i.test(m)) return "Diesen Benutzernamen gibt es schon. Bitte anmelden oder einen anderen wählen.";
   if (/password/i.test(m)) return "Das Passwort muss mindestens 6 Zeichen haben.";
   return "Anmeldung fehlgeschlagen: " + m;
 }
