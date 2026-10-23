@@ -215,3 +215,4 @@ button.close { flex: none; min-height: 36px; width: 36px; padding: 0; font-size:
   color: var(--fg);
 }
 button.microsoft { background: #2f2f2f; border-color: #2f2f2f; color: #fff; }
+.login-card .username { font: 700 28px/1.2 ui-monospace, monospace; letter-spacing: 1px; color: var(--accent); }
