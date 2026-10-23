@@ -24,7 +24,7 @@ function labelEl(v) {
   const el = document.createElement("div");
   el.className = "label";
   el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
-  for (const [cls, text] of [["name", v.name], ["code", v.code]]) {
+  for (const [cls, text] of [["name", v.name]]) {
     if (!text) continue;
     const d = document.createElement("div");
     d.className = cls;

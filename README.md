@@ -18,7 +18,7 @@ Ohne Zugangsdaten in `config.js` läuft die App im Demo-Modus, die Daten bleiben
 ## Stand: Schritt 2
 
 - Seite "QR-Etiketten" (`labels.html`): Fahrzeuge über ihren Kostenträger einzeln oder als Liste (aus Excel kopiert) anlegen
-- Jedes Fahrzeug bekommt automatisch einen Code (FZ-0001, FZ-0002, ...)
+- Jedes Fahrzeug bekommt automatisch einen internen Code (FZ-0001, FZ-0002, ...), der nur im QR-Code steckt; angezeigt wird überall nur der Kostenträger
 - Der QR-Code enthält einen Link auf die App mit diesem Code, die normale Handy-Kamera öffnet also direkt das Fahrzeug
 - "Etiketten drucken" erzeugt ein A4-Blatt mit drei Etiketten pro Zeile (im Druckdialog auch als PDF speicherbar)
 
@@ -30,7 +30,7 @@ Wichtig: Etiketten erst drucken, wenn die App unter ihrer endgültigen Adresse o
 - Alternativ öffnet die normale Handy-Kamera den Link auf dem Etikett direkt in der App
 - Danach misst die App bis zu 10 Sekunden GPS (früher fertig bei 5 m), nimmt die besten Werte und zeigt einen verschiebbaren Marker mit Angabe der Genauigkeit
 - Marker bei Bedarf auf den richtigen Stellplatz ziehen, dann "Standort speichern" (wird als "von Hand" vermerkt)
-- Suche oben nach Kostenträger oder Code zeigt das Fahrzeug auf der Karte, ein Tipp zeigt Zeitpunkt, Quelle und Melder
+- Suche oben nach Kostenträger zeigt das Fahrzeug auf der Karte, ein Tipp zeigt Zeitpunkt, Quelle und Melder
 
 Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit GPS, Öffnen per Etikett-Link, Marker verschieben, Suche.
 
@@ -39,7 +39,7 @@ Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit 
 - Anmeldung für Mitarbeiter mit Benutzername und Passwort (`auth.js`). Beim Registrieren gibt man Vor- und Nachnamen ein, der Benutzername entsteht daraus automatisch: erster Buchstabe des Vornamens + die ersten 4 des Nachnamens (Max Muster → mmust, bei Doppelungen mmust2 usw.). Intern wird daraus eine E-Mail-Kennung ohne Postfach, deshalb muss "Confirm email" aus sein. Ein vergessenes Passwort setzt man im Supabase-Dashboard unter Authentication → Users zurück.
 - Ohne Anmeldung lässt die Datenbank weder lesen noch schreiben; den Namen des Melders setzt die Datenbank selbst
 - Im Fahrzeug-Popup "Verlauf": die letzten 20 Meldungen mit Zeit, Melder und GPS oder von Hand, ein Tipp zeigt den damaligen Platz
-- "Teilen": erzeugt einen Kartenausschnitt als Bild (Satellit oder Lageplan, je nach Ansicht) mit Fahrzeug, Code, Zeit und Melder. "Senden" öffnet auf dem Handy das Teilen-Menü (WhatsApp, Teams, ...) mit Bild und App-Link (`?f=FZ-0001`, zeigt das Fahrzeug direkt auf der Karte). Am PC: Bild speichern und Link kopieren
+- "Teilen": erzeugt einen Kartenausschnitt als Bild (Satellit oder Lageplan, je nach Ansicht) mit Kostenträger, Zeit und Melder. "Senden" öffnet auf dem Handy das Teilen-Menü (WhatsApp, Teams, ...) mit Bild und App-Link (`?f=FZ-0001`, zeigt das Fahrzeug direkt auf der Karte). Am PC: Bild speichern und Link kopieren
 
 ## Dateien
 

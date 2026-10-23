@@ -70,7 +70,7 @@ function popupContent(v, p) {
   const title = document.createElement("strong");
   title.textContent = v.name;
   const meta = document.createElement("div");
-  meta.textContent = [v.code, fmtTime(p.created_at), fmtSource(p), p.created_by].filter(Boolean).join(" · ");
+  meta.textContent = [fmtTime(p.created_at), fmtSource(p), p.created_by].filter(Boolean).join(" · ");
   const actions = document.createElement("div");
   actions.className = "popup-actions";
   for (const [label, fn] of [["Verlauf", () => showHistory(v)], ["Teilen", () => shareVehicle(v, p)]]) {
@@ -107,7 +107,7 @@ async function showHistory(v) {
   const list = document.createElement("ol");
   list.className = "history";
   list.textContent = "Lade …";
-  openPanel(`Verlauf ${v.name} · ${v.code}`, list);
+  openPanel(`Verlauf ${v.name}`, list);
   try {
     const rows = await store.history(v.id);
     list.replaceChildren(
@@ -215,16 +215,16 @@ async function snapshot(v, p, usePlan) {
   ctx.textBaseline = "middle";
   ctx.fillText(label, cx + 32, cy);
 
-  // Fußzeile mit Code, Zeitpunkt und Melder
+  // Fußzeile mit Zeitpunkt und Melder
   ctx.fillStyle = "rgba(0,0,0,0.7)";
   ctx.fillRect(0, SNAP_H - 44, SNAP_W, 44);
   ctx.fillStyle = "#fff";
   ctx.font = "20px system-ui, sans-serif";
-  ctx.fillText([v.code, fmtTime(p.created_at), p.created_by].filter(Boolean).join(" · "), 14, SNAP_H - 22);
+  ctx.fillText([fmtTime(p.created_at), p.created_by].filter(Boolean).join(" · "), 14, SNAP_H - 22);
 
   const blob = await new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Bild konnte nicht erzeugt werden"))), "image/jpeg", 0.85));
-  return new File([blob], `Standort-${v.code}.jpg`, { type: "image/jpeg" });
+  return new File([blob], `Standort-${v.name.replace(/[^\w-]+/g, "_")}.jpg`, { type: "image/jpeg" });
 }
 
 async function shareVehicle(v, p) {
@@ -345,15 +345,15 @@ searchEl.addEventListener("input", () => {
   const q = searchEl.value.trim().toLowerCase();
   if (!q) showVehicle(null);
   const hits = q
-    ? vehicles.filter((v) => [v.name, v.code].some((f) => f && f.toLowerCase().includes(q))).slice(0, 20)
+    ? vehicles.filter((v) => [v.name].some((f) => f && f.toLowerCase().includes(q))).slice(0, 20)
     : [];
   resultsEl.replaceChildren(
     ...hits.map((v) => {
       const li = document.createElement("li");
       li.textContent = v.name;
       const small = document.createElement("small");
-      small.textContent = [v.code, markers[v.id] ? "" : "noch kein Standort"].filter(Boolean).join(" · ");
-      li.append(small);
+      small.textContent = markers[v.id] ? "" : "noch kein Standort";
+      if (small.textContent) li.append(small);
       li.addEventListener("click", () => {
         resultsEl.hidden = true;
         searchEl.value = v.name;
@@ -409,7 +409,7 @@ async function beginCapture(code) {
     capture.moved = true;
     captureStatus.textContent = "Von Hand verschoben.";
   });
-  document.getElementById("capture-title").textContent = `${vehicle.name} · ${vehicle.code}`;
+  document.getElementById("capture-title").textContent = vehicle.name;
   captureEl.hidden = false;
   locateForCapture();
 }
