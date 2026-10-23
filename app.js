@@ -329,7 +329,9 @@ document.getElementById("btn-locate").addEventListener("click", () => {
       meMarker = L.circle(ll, { radius: coords.accuracy, color: "#1a7f37", weight: 2, fillOpacity: 0.15 }).addTo(map);
       map.setView(ll, Math.max(map.getZoom(), 18));
     },
-    (err) => alert("Standort nicht verfügbar: " + err.message),
+    (err) => alert(err.code === err.PERMISSION_DENIED
+      ? "Standortzugriff verweigert. Bitte in den Einstellungen des Handys bzw. Browsers den Standort für diese Seite erlauben."
+      : "Standort nicht verfügbar: " + err.message),
     { enableHighAccuracy: true, timeout: 15000 }
   );
 });
@@ -488,7 +490,10 @@ function locateForCapture() {
     (err) => {
       if (err.code === err.PERMISSION_DENIED) {
         stopGps();
-        if (capture) captureStatus.textContent = "Standortzugriff verweigert. Bitte den Marker auf den Stellplatz ziehen.";
+        if (capture) captureStatus.textContent = "Standortzugriff verweigert. Marker von Hand auf den Stellplatz ziehen. " +
+          (/iPhone|iPad/.test(navigator.userAgent)
+            ? "Zum Freigeben: Einstellungen → Datenschutz & Sicherheit → Ortungsdienste → Safari-Websites → \"Beim Verwenden\", und in Safari unter \"aA\" → Website-Einstellungen → Standort → Erlauben."
+            : "Zum Freigeben im Browser beim Schloss-Symbol neben der Adresse den Standort erlauben.");
       }
     },
     { enableHighAccuracy: true, timeout: GPS_SECONDS * 1000, maximumAge: 0 }
