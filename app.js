@@ -136,57 +136,156 @@ async function showHistory(v) {
   }
 }
 
-// Teilen: auf dem Handy über das System-Menü (WhatsApp, Teams, …), sonst über Links
+// Teilen: ein Kartenausschnitt mit dem Fahrzeug als Bild und der Link in die App.
+// Das Bild wird zuerst als Vorschau gebaut; "Senden" ruft dann das Teilen-Menü des
+// Handys direkt per Tipp auf (iPhone verlangt das), dort sind WhatsApp und Teams dabei.
 function appLink(v) {
   const u = new URL("./", location.href);
   u.searchParams.set("f", v.code);
   return u.href;
 }
-async function shareVehicle(v, p) {
-  const text = [
-    `${v.name} (${v.code})`,
-    `Standort: https://www.google.com/maps?q=${p.lat},${p.lng}`,
-    `Gemeldet ${fmtTime(p.created_at)}` + (p.created_by ? ` von ${p.created_by}` : ""),
-    `In der App: ${appLink(v)}`,
-  ].join("\n");
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: `Standort ${v.name}`, text });
-      return;
-    } catch (err) {
-      if (err.name === "AbortError") return;
+
+const SNAP_W = 800, SNAP_H = 600, SNAP_ZOOM = 18;
+const TILE_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+
+const loadImage = (src) => new Promise((resolve, reject) => {
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => resolve(img);
+  img.onerror = () => reject(new Error("Bild nicht geladen: " + src));
+  img.src = src;
+});
+
+// Zeichnet den Ausschnitt um das Fahrzeug, als Satellitenbild oder als Lageplan
+async function snapshot(v, p, usePlan) {
+  const canvas = document.createElement("canvas");
+  canvas.width = SNAP_W;
+  canvas.height = SNAP_H;
+  const ctx = canvas.getContext("2d");
+  const c = map.project([p.lat, p.lng], SNAP_ZOOM);
+  const origin = c.subtract([SNAP_W / 2, SNAP_H / 2]);
+  const px = (ll) => map.project(ll, SNAP_ZOOM).subtract(origin);
+
+  if (usePlan) {
+    ctx.fillStyle = "#f4f4f4";
+    ctx.fillRect(0, 0, SNAP_W, SNAP_H);
+    const img = await loadImage(PLAN.image);
+    const [tl, tr, bl] = [px(PLAN.tl), px(PLAN.tr), px(PLAN.bl)];
+    const [w, h] = PLAN.size;
+    ctx.setTransform((tr.x - tl.x) / w, (tr.y - tl.y) / w, (bl.x - tl.x) / h, (bl.y - tl.y) / h, tl.x, tl.y);
+    ctx.drawImage(img, 0, 0, w, h);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+  } else {
+    const x0 = Math.floor(origin.x / 256), x1 = Math.floor((origin.x + SNAP_W) / 256);
+    const y0 = Math.floor(origin.y / 256), y1 = Math.floor((origin.y + SNAP_H) / 256);
+    const jobs = [];
+    for (let x = x0; x <= x1; x++) {
+      for (let y = y0; y <= y1; y++) {
+        const src = TILE_URL.replace("{z}", SNAP_ZOOM).replace("{x}", x).replace("{y}", y);
+        jobs.push(loadImage(src).then((img) => ctx.drawImage(img, x * 256 - origin.x, y * 256 - origin.y)));
+      }
     }
+    await Promise.all(jobs);
+    ctx.strokeStyle = "#e5322d";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    boundary.forEach((ll, i) => {
+      const q = px(ll);
+      i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y);
+    });
+    ctx.closePath();
+    ctx.stroke();
   }
-  const link = (label, href) => {
-    const a = document.createElement("a");
-    a.className = "share-link";
-    a.href = href;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.textContent = label;
-    return a;
+
+  // Fahrzeug-Punkt mit Beschriftung
+  const cx = SNAP_W / 2, cy = SNAP_H / 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 13, 0, Math.PI * 2);
+  ctx.fillStyle = "#1f6feb";
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#fff";
+  ctx.stroke();
+  ctx.font = "bold 24px system-ui, sans-serif";
+  const label = v.name;
+  const lw = ctx.measureText(label).width;
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.fillRect(cx + 22, cy - 18, lw + 20, 36);
+  ctx.fillStyle = "#1b1f24";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, cx + 32, cy);
+
+  // Fußzeile mit Code, Zeitpunkt und Melder
+  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  ctx.fillRect(0, SNAP_H - 44, SNAP_W, 44);
+  ctx.fillStyle = "#fff";
+  ctx.font = "20px system-ui, sans-serif";
+  ctx.fillText([v.code, fmtTime(p.created_at), p.created_by].filter(Boolean).join(" · "), 14, SNAP_H - 22);
+
+  const blob = await new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Bild konnte nicht erzeugt werden"))), "image/jpeg", 0.85));
+  return new File([blob], `Standort-${v.code}.jpg`, { type: "image/jpeg" });
+}
+
+async function shareVehicle(v, p) {
+  const link = appLink(v);
+  const body = document.createElement("div");
+  body.className = "share";
+  body.textContent = "Bild wird erstellt …";
+  openPanel(`${v.name} teilen`, body);
+
+  // Satellitenbild, falls die Karte gerade so steht; klappt das nicht, der Lageplan
+  let file = null;
+  try {
+    file = await snapshot(v, p, map.hasLayer(planView));
+  } catch {
+    try { file = await snapshot(v, p, true); } catch {}
+  }
+
+  const button = (label, cls, fn) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    if (cls) b.className = cls;
+    b.addEventListener("click", fn);
+    return b;
   };
-  const copy = document.createElement("button");
-  copy.type = "button";
-  copy.textContent = "Text kopieren";
-  copy.addEventListener("click", async () => {
+  const nodes = [];
+  if (file) {
+    const img = document.createElement("img");
+    img.className = "share-preview";
+    img.alt = `Kartenausschnitt ${v.name}`;
+    img.src = URL.createObjectURL(file);
+    nodes.push(img);
+  }
+  const withFile = file && navigator.canShare?.({ files: [file] });
+  if (navigator.share) {
+    nodes.push(button("Senden (WhatsApp, Teams …)", "primary", async () => {
+      try {
+        await navigator.share(withFile ? { files: [file], text: link } : { text: link });
+      } catch (err) {
+        if (err.name !== "AbortError") alert("Teilen nicht möglich: " + err.message);
+      }
+    }));
+  }
+  if (file && !withFile) {
+    nodes.push(button("Bild speichern", "", () => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(file);
+      a.download = file.name;
+      a.click();
+    }));
+  }
+  const copy = button("Link kopieren", "", async () => {
     try {
-      await navigator.clipboard.writeText(text);
-      copy.textContent = "Kopiert";
+      await navigator.clipboard.writeText(link);
+      copy.textContent = "Link kopiert";
     } catch {
-      copy.textContent = "Kopieren nicht möglich";
+      copy.textContent = link;
     }
   });
-  const preview = document.createElement("pre");
-  preview.className = "share-text";
-  preview.textContent = text;
-  openPanel(
-    `${v.name} teilen`,
-    preview,
-    link("WhatsApp", "https://wa.me/?text=" + encodeURIComponent(text)),
-    link("Microsoft Teams", "https://teams.microsoft.com/share?href=" + encodeURIComponent(appLink(v)) + "&msgText=" + encodeURIComponent(text)),
-    copy
-  );
+  nodes.push(copy);
+  body.replaceChildren(...nodes);
 }
 
 async function renderVehicles() {

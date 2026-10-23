@@ -39,8 +39,7 @@ Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit 
 - Anmeldung für Mitarbeiter mit Benutzername und Passwort (`auth.js`). Beim Registrieren gibt man Vor- und Nachnamen ein, der Benutzername entsteht daraus automatisch: erster Buchstabe des Vornamens + die ersten 4 des Nachnamens (Max Muster → mmust, bei Doppelungen mmust2 usw.). Intern wird daraus eine E-Mail-Kennung ohne Postfach, deshalb muss "Confirm email" aus sein. Ein vergessenes Passwort setzt man im Supabase-Dashboard unter Authentication → Users zurück.
 - Ohne Anmeldung lässt die Datenbank weder lesen noch schreiben; den Namen des Melders setzt die Datenbank selbst
 - Im Fahrzeug-Popup "Verlauf": die letzten 20 Meldungen mit Zeit, Melder und GPS oder von Hand, ein Tipp zeigt den damaligen Platz
-- "Teilen": auf dem Handy über das normale Teilen-Menü (WhatsApp, Teams, ...), am PC über WhatsApp- und Teams-Links oder Kopieren
-- Der geteilte Text enthält einen Google-Maps-Link und einen App-Link (`?f=FZ-0001`), der das Fahrzeug direkt auf der Karte zeigt
+- "Teilen": erzeugt einen Kartenausschnitt als Bild (Satellit oder Lageplan, je nach Ansicht) mit Fahrzeug, Code, Zeit und Melder. "Senden" öffnet auf dem Handy das Teilen-Menü (WhatsApp, Teams, ...) mit Bild und App-Link (`?f=FZ-0001`, zeigt das Fahrzeug direkt auf der Karte). Am PC: Bild speichern und Link kopieren
 
 ## Dateien
 
