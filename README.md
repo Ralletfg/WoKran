@@ -42,6 +42,17 @@ Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit 
 - Im Fahrzeug-Popup "Verlauf": die letzten 20 Meldungen mit Zeit, Melder und GPS oder von Hand, ein Tipp zeigt den damaligen Platz
 - "Teilen": erzeugt einen Kartenausschnitt als Bild (Satellit oder Lageplan, je nach Ansicht) mit Kostenträger, Zeit und Melder. "Senden" öffnet auf dem Handy das Teilen-Menü (WhatsApp, Teams, ...) mit Bild und App-Link (`?f=FZ-0001`, zeigt das Fahrzeug direkt auf der Karte). Am PC: Bild speichern und Link kopieren
 
+## Stand: Schritt 5 (Admin und Backup)
+
+- Rollen: Mitarbeiter und Admin. Mitarbeiter sehen alles, melden Standorte und legen Fahrzeuge an. Ändern und Löschen darf nur ein Admin; das prüft die Datenbank selbst
+- Beim ersten Ausführen des neuen `schema.sql` wird das älteste Konto Admin, falls es noch keinen gibt
+- Seite "Admin" (`admin.html`, Link oben nur für Admins):
+  - Fahrzeuge: Kostenträger ändern, Fahrzeug löschen, einzelne Meldungen löschen
+  - Benutzer: Rolle ändern, sperren/entsperren (gesperrte Konten können sich nicht mehr anmelden), Passwort neu setzen, Konto löschen
+  - Backup: jetzt erstellen, aktuellen Stand als Datei herunterladen, Backup aus der Liste oder aus einer Datei einspielen
+- Tägliches Backup jede Nacht um 2 Uhr UTC über pg_cron in der Datenbank (Tabelle `backups`), automatische Backups werden 30 Tage aufbewahrt. Vor jedem Einspielen wird der aktuelle Stand gesichert
+- Die Backups liegen in derselben Datenbank. Gegen den Verlust der ganzen Datenbank hilft nur, ab und zu "Herunterladen" zu nutzen und die Datei woanders abzulegen
+
 ## Dateien
 
 | Datei | Inhalt |
@@ -49,6 +60,7 @@ Im Test-Browser durchgespielt: Scan über eine simulierte Kamera, Speichern mit 
 | `index.html`, `style.css` | Oberfläche |
 | `app.js` | Karte, eigener Standort, Suche, Standort erfassen, Verlauf, Teilen |
 | `auth.js` | Anmeldemaske |
+| `admin.html`, `admin.css`, `admin.js` | Admin-Seite |
 | `scan.js` | QR-Scanner über die Kamera |
 | `store.js` | Datenzugriff (Supabase oder lokaler Demo-Speicher) |
 | `labels.html`, `labels.css`, `labels.js` | QR-Etiketten anlegen und drucken |

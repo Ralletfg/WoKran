@@ -164,6 +164,7 @@ window.requireLogin = function (store) {
 function translate(err) {
   const m = String(err?.message || err);
   if (/invalid login credentials/i.test(m)) return "Benutzername oder Passwort falsch.";
+  if (/banned/i.test(m)) return "Dein Konto ist gesperrt. Bitte wende dich an einen Admin.";
   if (/email not confirmed/i.test(m)) return "Bitte zuerst den Link in der Bestätigungs-E-Mail öffnen.";
   if (/password/i.test(m)) return "Das Passwort muss mindestens 6 Zeichen haben.";
   return "Anmeldung fehlgeschlagen: " + m;

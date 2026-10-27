@@ -30,7 +30,7 @@ function createLocalStore() {
       try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; }
     },
     async signUp({ name }) {
-      const u = { id: "demo", name, email: "" };
+      const u = { id: "demo", name, email: "", role: "admin", active: true };
       try { localStorage.setItem(USER_KEY, JSON.stringify(u)); } catch {}
       return u;
     },
@@ -91,6 +91,62 @@ function createLocalStore() {
       save(db);
       notify();
     },
+
+    // --- Admin (im Demo-Modus ist man selbst Admin, Backups liegen auf dem Gerät)
+    async updateVehicle(id, fields) {
+      const db = load();
+      Object.assign(db.vehicles.find((v) => v.id === id) || {}, fields);
+      save(db);
+      notify();
+    },
+    async deleteVehicle(id) {
+      const db = load();
+      db.vehicles = db.vehicles.filter((v) => v.id !== id);
+      db.positions = db.positions.filter((p) => p.vehicle_id !== id);
+      save(db);
+      notify();
+    },
+    async deletePosition(id) {
+      const db = load();
+      db.positions = db.positions.filter((p) => p.id !== id);
+      save(db);
+      notify();
+    },
+    async listUsers() {
+      const u = await this.currentUser();
+      return u ? [{ id: u.id, name: u.name, username: "", role: "admin", active: true }] : [];
+    },
+    async updateUser() {},
+    async setPassword() {},
+    async deleteUser() {},
+    async exportData() {
+      const { vehicles, positions } = load();
+      return { vehicles, positions };
+    },
+    async listBackups() {
+      return (load().backups || []).map(({ data, ...b }) => b).reverse();
+    },
+    async getBackup(id) {
+      return (load().backups || []).find((b) => b.id === id)?.data;
+    },
+    async makeBackup(kind = "manuell") {
+      const db = load();
+      const data = { vehicles: db.vehicles, positions: db.positions };
+      db.backups = [...(db.backups || []), {
+        id: Date.now(), created_at: new Date().toISOString(), kind,
+        vehicles: data.vehicles.length, positions: data.positions.length, data,
+      }];
+      save(db);
+    },
+    async restore(data) {
+      if (!Array.isArray(data?.vehicles) || !Array.isArray(data?.positions)) throw new Error("Keine gültige Backup-Datei");
+      await this.makeBackup("vor Wiederherstellung");
+      const db = load();
+      db.vehicles = data.vehicles;
+      db.positions = data.positions;
+      save(db);
+      notify();
+    },
     onChange(fn) {
       listeners.add(fn);
       return () => listeners.delete(fn);
@@ -109,9 +165,13 @@ function createSupabaseStore(url, key) {
 
   return {
     mode: "shared",
+    // Mit Rolle (admin/user) und Sperr-Status aus der Tabelle profiles
     async currentUser() {
       const { data } = await sb.auth.getSession();
-      return toUser(data.session?.user);
+      const u = toUser(data.session?.user);
+      if (!u) return null;
+      const { data: prof } = await sb.from("profiles").select("role, active").eq("id", u.id).maybeSingle();
+      return { ...u, role: prof?.role || "user", active: prof ? prof.active : true };
     },
     // Liefert null, wenn Supabase erst eine Bestätigungs-E-Mail verlangt
     async signUp({ email, password, name }) {
@@ -119,10 +179,11 @@ function createSupabaseStore(url, key) {
         email, password,
         options: { data: { name }, emailRedirectTo: new URL("./", location.href).href },
       }));
-      return data.session ? toUser(data.user) : null;
+      return data.session ? this.currentUser() : null;
     },
     async signIn({ email, password }) {
-      return toUser(check(await sb.auth.signInWithPassword({ email, password })).user);
+      check(await sb.auth.signInWithPassword({ email, password }));
+      return this.currentUser();
     },
     // Zurück auf dieselbe Adresse, damit ein gescannter Link (?v=…) erhalten bleibt
     async signInWithMicrosoft() {
@@ -164,6 +225,48 @@ function createSupabaseStore(url, key) {
     },
     async addPosition(p) {
       check(await sb.from("positions").insert(p));
+    },
+
+    // --- Admin (die Datenbank prüft selbst, ob man Admin ist)
+    async updateVehicle(id, fields) {
+      check(await sb.from("vehicles").update(fields).eq("id", id));
+    },
+    async deleteVehicle(id) {
+      check(await sb.from("vehicles").delete().eq("id", id));
+    },
+    async deletePosition(id) {
+      check(await sb.from("positions").delete().eq("id", id));
+    },
+    async listUsers() {
+      return check(await sb.from("profiles").select("*").order("name"));
+    },
+    async updateUser(id, { role, active }) {
+      check(await sb.rpc("admin_update_user", { uid: id, new_role: role, new_active: active }));
+    },
+    async setPassword(id, pw) {
+      check(await sb.rpc("admin_set_password", { uid: id, pw }));
+    },
+    async deleteUser(id) {
+      check(await sb.rpc("admin_delete_user", { uid: id }));
+    },
+    async exportData() {
+      const [vehicles, positions] = await Promise.all([
+        sb.from("vehicles").select("*"), sb.from("positions").select("*").limit(100000),
+      ]).then((r) => r.map(check));
+      return { vehicles, positions };
+    },
+    async listBackups() {
+      return check(await sb.from("backups").select("id, created_at, kind, vehicles, positions")
+        .order("created_at", { ascending: false }));
+    },
+    async getBackup(id) {
+      return check(await sb.from("backups").select("data").eq("id", id).single()).data;
+    },
+    async makeBackup() {
+      check(await sb.rpc("make_backup", { backup_kind: "manuell" }));
+    },
+    async restore(data) {
+      check(await sb.rpc("restore_backup", { backup: data }));
     },
     onChange(fn) {
       const ch = sb

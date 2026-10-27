@@ -560,6 +560,13 @@ requireLogin(store).then(async (u) => {
   userEl.textContent = u.name;
   userEl.title = "Abmelden";
   userEl.hidden = false;
+  document.getElementById("admin-link").hidden = !(store.mode === "demo" || u.role === "admin");
+  if (u.active === false) {
+    modeEl.textContent = "Gesperrt";
+    modeEl.title = "Dein Konto ist gesperrt. Bitte wende dich an einen Admin.";
+    alert(modeEl.title);
+    return;
+  }
   try {
     await renderVehicles();
   } catch (err) {

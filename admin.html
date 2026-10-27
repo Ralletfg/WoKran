@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Admin</title>
+  <link rel="stylesheet" href="style.css?v=20261027c">
+  <link rel="stylesheet" href="labels.css?v=20261027c">
+  <link rel="stylesheet" href="admin.css?v=20261027c">
+</head>
+<body class="page">
+  <header class="bar">
+    <h1>Admin</h1>
+    <span class="bar-right">
+      <a href="labels.html" class="badge">QR-Etiketten</a>
+      <a href="./" class="badge">Zur Karte</a>
+    </span>
+  </header>
+
+  <main class="content">
+    <p id="denied" class="card" hidden>Diese Seite ist nur für Admins.</p>
+
+    <div id="admin" hidden>
+      <nav class="tabs">
+        <button type="button" data-tab="fahrzeuge">Fahrzeuge</button>
+        <button type="button" data-tab="benutzer">Benutzer</button>
+        <button type="button" data-tab="backup">Backup</button>
+      </nav>
+
+      <!-- Fahrzeuge umbenennen oder löschen, Meldungen löschen -->
+      <section data-panel="fahrzeuge">
+        <input id="v-search" type="search" placeholder="Kostenträger suchen" autocomplete="off">
+        <ul id="v-list" class="rows"></ul>
+      </section>
+
+      <!-- Rolle, Sperren, Passwort, Löschen -->
+      <section data-panel="benutzer" hidden>
+        <p class="muted">Gesperrte Benutzer können sich nicht mehr anmelden und sehen keine Daten. Ihre Meldungen bleiben erhalten.</p>
+        <ul id="u-list" class="rows"></ul>
+      </section>
+
+      <!-- Backups -->
+      <section data-panel="backup" hidden>
+        <div class="card">
+          <h2>Backup</h2>
+          <p class="muted">Jede Nacht (gegen 3 Uhr) wird automatisch ein Backup aller Fahrzeuge und Meldungen erstellt und 30 Tage aufbewahrt. Vor jedem Einspielen wird der aktuelle Stand zusätzlich gesichert.</p>
+          <button id="b-make" type="button" class="primary">Backup jetzt erstellen</button>
+          <button id="b-download" type="button">Aktuellen Stand als Datei herunterladen</button>
+          <label>Backup aus Datei einspielen <input id="b-file" type="file" accept=".json,application/json"></label>
+        </div>
+        <ul id="b-list" class="rows"></ul>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script src="config.js?v=20261027c"></script>
+  <script src="store.js?v=20261027c"></script>
+  <script src="auth.js?v=20261027c"></script>
+  <script src="admin.js?v=20261027c"></script>
+</body>
+</html>
