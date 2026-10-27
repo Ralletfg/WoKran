@@ -38,7 +38,7 @@ function labelEl(v) {
 const TYPES = window.APP_CONFIG.TYPES || [];
 const OTHER = "Sonstige";
 const ALL = "Alle";
-const typeOf = (v) => TYPES.find((t) => String(v.name).startsWith(t.prefix))?.name || OTHER;
+const typeOf = (v) => TYPES.find((t) => String(v.name).trim().startsWith(t.prefix))?.name || OTHER;
 
 // Die Typ-Ansicht steht in der Adresse (#typ=AC80), so funktioniert auch "Zurück" im Browser
 const currentGroup = () => decodeURIComponent((location.hash.match(/^#typ=(.+)$/) || [])[1] || "");
@@ -50,8 +50,7 @@ document.getElementById("back").addEventListener("click", () => {
 function tile(name, count) {
   const b = document.createElement("button");
   b.type = "button";
-  b.className = "tile";
-  b.disabled = !count;
+  b.className = "tile" + (count ? "" : " empty");
   const n = document.createElement("strong");
   n.textContent = name;
   const c = document.createElement("small");
@@ -85,7 +84,8 @@ async function render() {
   }
   const shown = group === ALL ? vehicles : vehicles.filter((v) => typeOf(v) === group);
   document.getElementById("group-title").textContent = `${group} (${shown.length})`;
-  sheet.replaceChildren(...shown.map(labelEl));
+  if (shown.length) sheet.replaceChildren(...shown.map(labelEl));
+  else sheet.replaceChildren(Object.assign(document.createElement("p"), { className: "muted", textContent: "Noch keine Fahrzeuge dieses Typs angelegt." }));
 }
 
 async function addMany(rows) {
