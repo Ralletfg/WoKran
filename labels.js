@@ -34,11 +34,45 @@ function labelEl(v) {
   return el;
 }
 
+// Fahrzeugtyp aus dem Anfang des Kostenträgers (Liste in config.js)
+const TYPES = window.APP_CONFIG.TYPES || [];
+const OTHER = "Sonstige";
+const ALL = "Alle";
+const typeOf = (v) => TYPES.find((t) => String(v.name).startsWith(t.prefix))?.name || OTHER;
+
+let group = ALL;
+try { group = localStorage.getItem("qr-fahrzeuge-typ") || ALL; } catch {}
+
+function tile(name, count) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tile" + (name === group ? " active" : "");
+  const n = document.createElement("strong");
+  n.textContent = name;
+  const c = document.createElement("small");
+  c.textContent = count === 1 ? "1 Fahrzeug" : `${count} Fahrzeuge`;
+  b.append(n, c);
+  b.addEventListener("click", () => {
+    group = name;
+    try { localStorage.setItem("qr-fahrzeuge-typ", name); } catch {}
+    render();
+  });
+  return b;
+}
+
 async function render() {
   const vehicles = await store.listVehicles();
-  vehicles.sort((a, b) => a.code.localeCompare(b.code));
-  document.getElementById("count").textContent = `(${vehicles.length})`;
-  sheet.replaceChildren(...vehicles.map(labelEl));
+  vehicles.sort((a, b) => String(a.name).localeCompare(String(b.name), "de", { numeric: true }));
+  const counts = {};
+  for (const v of vehicles) counts[typeOf(v)] = (counts[typeOf(v)] || 0) + 1;
+  const names = [ALL, ...TYPES.map((t) => t.name), ...(counts[OTHER] ? [OTHER] : [])];
+  if (!names.includes(group)) group = ALL;
+  document.getElementById("tiles").replaceChildren(
+    ...names.map((n) => tile(n, n === ALL ? vehicles.length : counts[n] || 0))
+  );
+  const shown = group === ALL ? vehicles : vehicles.filter((v) => typeOf(v) === group);
+  document.getElementById("group-title").textContent = `${group} (${shown.length})`;
+  sheet.replaceChildren(...shown.map(labelEl));
 }
 
 async function addMany(rows) {

@@ -6,6 +6,17 @@ window.APP_CONFIG = {
   // Lageplan (Werk Faunberg, Lauf an der Pegnitz), an OpenStreetMap-Gebäudeumrisse angepasst.
   // tl/tr/bl: Koordinaten der Bildecken oben links, oben rechts, unten links.
   // boundary: Geländegrenze in Bildpixeln, wird daraus in Koordinaten umgerechnet.
+  // Fahrzeugtypen: erkannt am Anfang des Kostenträgers (QR-Etiketten-Seite)
+  TYPES: [
+    { name: "FA080", prefix: "2080" },
+    { name: "P086", prefix: "3086" },
+    { name: "FA273", prefix: "2273" },
+    { name: "AC45 City", prefix: "2071" },
+    { name: "AC80", prefix: "3057" },
+    { name: "AC70", prefix: "3060" },
+    { name: "AC130", prefix: "3035" },
+    { name: "AC160", prefix: "3038" },
+  ],
   // Erst auf true setzen, wenn Microsoft (Azure) in Supabase eingerichtet ist
   MICROSOFT_LOGIN: false,
   PLAN: {
