@@ -544,10 +544,47 @@ function showDbError(err) {
 // Angemeldeter Mitarbeiter; sein Name steht bei jeder Meldung im Verlauf
 let user = null;
 const userEl = document.getElementById("user");
-userEl.addEventListener("click", async () => {
-  if (!confirm(`Angemeldet als ${user.name}. Abmelden?`)) return;
-  await store.signOut();
-  location.reload();
+// Tipp auf den Namen: eigenes Passwort ändern oder abmelden
+userEl.addEventListener("click", () => {
+  const nodes = [];
+  if (store.mode !== "demo") {
+    const form = document.createElement("form");
+    form.className = "pw-form";
+    form.innerHTML = `
+      <label>Aktuelles Passwort <input name="old" type="password" autocomplete="current-password" required></label>
+      <label>Neues Passwort <input name="pw" type="password" autocomplete="new-password" minlength="6" required></label>
+      <label>Neues Passwort wiederholen <input name="pw2" type="password" autocomplete="new-password" minlength="6" required></label>
+      <p class="pw-msg muted" hidden></p>
+      <button type="submit" class="primary">Passwort ändern</button>`;
+    const msg = form.querySelector(".pw-msg");
+    const say = (text, ok) => {
+      msg.textContent = text;
+      msg.style.color = ok ? "#1a7f37" : "#cf222e";
+      msg.hidden = false;
+    };
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (form.pw.value !== form.pw2.value) return say("Die beiden neuen Passwörter stimmen nicht überein.");
+      if (form.pw.value.length < 6) return say("Das neue Passwort muss mindestens 6 Zeichen haben.");
+      try {
+        await store.changePassword(form.old.value, form.pw.value);
+        form.reset();
+        say("Passwort geändert.", true);
+      } catch (err) {
+        say(/invalid login/i.test(err.message) ? "Das aktuelle Passwort ist falsch." : "Ändern fehlgeschlagen: " + err.message);
+      }
+    });
+    nodes.push(form);
+  }
+  const out = document.createElement("button");
+  out.type = "button";
+  out.textContent = "Abmelden";
+  out.addEventListener("click", async () => {
+    await store.signOut();
+    location.reload();
+  });
+  nodes.push(out);
+  openPanel(`Angemeldet als ${user.name}`, ...nodes);
 });
 
 // QR-Link (…/?v=FZ-0001) erfasst den Standort, geteilter Link (…/?f=FZ-0001) zeigt das Fahrzeug

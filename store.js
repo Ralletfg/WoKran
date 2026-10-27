@@ -195,6 +195,13 @@ function createSupabaseStore(url, key) {
     async signOut() {
       await sb.auth.signOut();
     },
+    // Erst das alte Passwort prüfen, dann das neue setzen
+    async changePassword(oldPw, newPw) {
+      const { data } = await sb.auth.getSession();
+      const email = data.session?.user?.email;
+      check(await sb.auth.signInWithPassword({ email, password: oldPw }));
+      check(await sb.auth.updateUser({ password: newPw }));
+    },
     async getBoundary() {
       const rows = check(await sb.from("site").select("boundary").eq("id", 1));
       return rows[0]?.boundary || null;

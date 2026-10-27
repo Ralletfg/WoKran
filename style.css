@@ -200,7 +200,7 @@ button.link { border: none; background: none; color: var(--accent); min-height: 
 .popup-actions button { min-height: 36px; padding: 4px 10px; font-size: 14px; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 button.close { flex: none; min-height: 36px; width: 36px; padding: 0; font-size: 22px; line-height: 1; }
-#panel-body { max-height: 45vh; overflow-y: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+#panel-body { max-height: 65vh; overflow-y: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
 .history { list-style: none; margin: 0; padding: 0; }
 .history li { display: flex; flex-direction: column; padding: 8px 4px; border-bottom: 1px solid var(--border); cursor: pointer; }
 .history li.active { background: color-mix(in srgb, #8250df 15%, transparent); }
@@ -219,3 +219,7 @@ button.microsoft { background: #2f2f2f; border-color: #2f2f2f; color: #fff; }
 .login-card .username { font: 700 28px/1.2 ui-monospace, monospace; letter-spacing: 1px; color: var(--accent); }
 .share { display: flex; flex-direction: column; gap: 8px; }
 .share-preview { width: 100%; border-radius: 8px; display: block; }
+.pw-form { display: flex; flex-direction: column; gap: 8px; }
+.pw-form label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.pw-form input { min-height: 44px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); font: inherit; }
+.pw-msg { margin: 0; font-size: 14px; }
