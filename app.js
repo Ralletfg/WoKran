@@ -303,11 +303,16 @@ async function renderVehicles() {
   showVehicle(shownId, false);
 }
 
-// Auf der Karte steht immer nur das gesuchte (oder gerade erfasste) Fahrzeug
+// Normalerweise steht nur das gesuchte (oder gerade erfasste) Fahrzeug auf der Karte,
+// mit "Alle" unten alle Fahrzeuge auf einmal
 let shownId = null;
+let showAll = false;
+try { showAll = localStorage.getItem("qr-fahrzeuge-alle") === "1"; } catch {}
+
 function showVehicle(id, focus = true) {
   shownId = id;
   vehicleLayer.clearLayers();
+  if (showAll) Object.values(markers).forEach((m) => m.addTo(vehicleLayer));
   const m = id && markers[id];
   if (!m) return;
   m.addTo(vehicleLayer);
@@ -316,6 +321,19 @@ function showVehicle(id, focus = true) {
     m.openPopup();
   }
 }
+
+const allBtn = document.getElementById("btn-all");
+function updateAllBtn() {
+  allBtn.classList.toggle("on", showAll);
+  allBtn.setAttribute("aria-pressed", showAll);
+}
+updateAllBtn();
+allBtn.addEventListener("click", () => {
+  showAll = !showAll;
+  try { localStorage.setItem("qr-fahrzeuge-alle", showAll ? "1" : "0"); } catch {}
+  updateAllBtn();
+  showVehicle(shownId, false);
+});
 
 // --- Eigener Standort ----------------------------------------------------
 

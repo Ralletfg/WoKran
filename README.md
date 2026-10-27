@@ -10,7 +10,7 @@ Läuft im Handy-Browser (Android und iPhone), kann auf den Startbildschirm geleg
 - Die Geländegrenze kommt aus dem Lageplan und erscheint auf beiden Karten gleich
 - Herauszoomen ist nur bis zur Größe des Geländes möglich
 - "Standort" zeigt die eigene GPS-Position mit Genauigkeitskreis
-- Auf der Karte erscheint nur das Fahrzeug, nach dem gesucht wurde (oder das gerade erfasst wurde)
+- Auf der Karte erscheint nur das Fahrzeug, nach dem gesucht wurde (oder das gerade erfasst wurde); der Knopf "Alle" unten zeigt alle Fahrzeuge auf einmal
 - Datenbasis: Fahrzeuge, Standortverlauf, Geländegrenze
 
 Ohne Zugangsdaten in `config.js` läuft die App im Demo-Modus, die Daten bleiben dann nur auf dem jeweiligen Gerät.

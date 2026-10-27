@@ -223,3 +223,4 @@ button.microsoft { background: #2f2f2f; border-color: #2f2f2f; color: #fff; }
 .pw-form label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
 .pw-form input { min-height: 44px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--fg); font: inherit; }
 .pw-msg { margin: 0; font-size: 14px; }
+#btn-all.on { background: color-mix(in srgb, var(--accent) 15%, var(--bg)); border-color: var(--accent); color: var(--accent); font-weight: 600; }
