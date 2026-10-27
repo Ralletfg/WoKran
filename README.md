@@ -20,7 +20,7 @@ Ohne Zugangsdaten in `config.js` läuft die App im Demo-Modus, die Daten bleiben
 - Seite "QR-Etiketten" (`labels.html`): Fahrzeuge über ihren Kostenträger einzeln oder als Liste (aus Excel kopiert) anlegen
 - Jedes Fahrzeug bekommt automatisch einen internen Code (FZ-0001, FZ-0002, ...), der nur im QR-Code steckt; angezeigt wird überall nur der Kostenträger
 - Der QR-Code enthält einen Link auf die App mit diesem Code, die normale Handy-Kamera öffnet also direkt das Fahrzeug
-- Kacheln nach Fahrzeugtyp (FA080, AC80, ...), erkannt am Anfang des Kostenträgers; die Zuordnung steht in `config.js` unter `TYPES`. Wer in keinen Typ passt, landet unter "Sonstige"
+- Startseite mit Kacheln nach Fahrzeugtyp (FA080, AC80, ...); ein Tipp öffnet eine eigene Ansicht mit den QR-Etiketten dieses Typs, erkannt am Anfang des Kostenträgers; die Zuordnung steht in `config.js` unter `TYPES`. Wer in keinen Typ passt, landet unter "Sonstige"
 - "Etiketten drucken" erzeugt die Etiketten des gewählten Typs als A4-Blatt mit drei Etiketten pro Zeile (im Druckdialog auch als PDF speicherbar)
 
 Wichtig: Etiketten erst drucken, wenn die App unter ihrer endgültigen Adresse online ist, denn die Adresse steckt im QR-Code.

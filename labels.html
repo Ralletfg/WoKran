@@ -13,7 +13,13 @@
     <a href="./" class="badge">Zur Karte</a>
   </header>
 
-  <main class="content no-print">
+  <!-- Übersicht: Kacheln nach Fahrzeugtyp, darunter Fahrzeuge anlegen -->
+  <main id="overview" class="content no-print">
+    <div class="card">
+      <h2>Fahrzeugtypen</h2>
+      <div id="tiles" class="tiles"></div>
+    </div>
+
     <form id="add-form" class="card">
       <h2>Fahrzeug anlegen</h2>
       <label>Kostenträger <input name="name" required placeholder="z. B. 4711"></label>
@@ -26,17 +32,18 @@
       <textarea id="bulk" rows="5" placeholder="4711&#10;4712"></textarea>
       <button id="bulk-add" type="button">Alle hinzufügen</button>
     </div>
-
-    <div class="card">
-      <h2>Fahrzeugtypen</h2>
-      <div id="tiles" class="tiles"></div>
-      <h2 id="group-title"></h2>
-      <button id="print" type="button" class="primary">Etiketten drucken</button>
-      <p class="muted">Druckt die angezeigten Fahrzeuge auf A4, drei Etiketten pro Zeile. Ein Scan mit der normalen Handy-Kamera öffnet direkt die App.</p>
-    </div>
   </main>
 
-  <section id="sheet" class="sheet"></section>
+  <!-- Ansicht eines Typs: seine QR-Etiketten -->
+  <section id="group" hidden>
+    <div class="content no-print group-head">
+      <button id="back" type="button">← Fahrzeugtypen</button>
+      <h2 id="group-title"></h2>
+      <button id="print" type="button" class="primary">Etiketten drucken</button>
+      <p class="muted">Druckt diese Fahrzeuge auf A4, drei Etiketten pro Zeile. Ein Scan mit der normalen Handy-Kamera öffnet direkt die App.</p>
+    </div>
+    <div id="sheet" class="sheet"></div>
+  </section>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
